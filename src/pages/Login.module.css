@@ -1,0 +1,107 @@
+/* src/pages/Login.module.css */
+.container {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* A subtle dark gradient background */
+  background: linear-gradient(135deg, #121212 0%, #1e1e1e 100%);
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+.loginCard {
+  width: 100%;
+  max-width: 400px;
+  padding: 3rem 2.5rem;
+  background: #252525;
+  border-radius: 16px;
+  /* A more prominent, softer shadow for depth */
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  text-align: center;
+  border: 1px solid #333;
+}
+
+.brandIcon {
+    color: #646cff;
+    margin-bottom: 1rem;
+}
+
+.title {
+  margin-bottom: 2.5rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #eee;
+  letter-spacing: 0.5px;
+}
+
+.inputGroup {
+  position: relative;
+  margin-bottom: 1.5rem;
+  width: 100%; /* Ensure the group doesn't overflow */
+}
+
+/* Positions the icon inside the input field */
+.inputIcon {
+    position: absolute;
+    top: 50%;
+    left: 15px;
+    transform: translateY(-50%);
+    color: #888;
+    transition: color 0.3s ease;
+}
+
+.input {
+  width: 100%;
+  padding: 14px 14px 14px 45px; /* Large left padding for icon */
+  background: #1a1a1a;
+  border: 2px solid #333;
+  border-radius: 10px;
+  color: white;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  
+  /* --- THE CRITICAL FIX --- */
+  box-sizing: border-box; 
+}
+
+/* Highlight border and icon on focus */
+.input:focus {
+    outline: none;
+    border-color: #646cff;
+    background: #1f1f1f;
+}
+
+.input:focus + .inputIcon {
+    color: #646cff;
+}
+
+.input::placeholder {
+    color: #666;
+}
+
+.button {
+  width: 100%;
+  padding: 14px;
+  /* A modern gradient button */
+  background: linear-gradient(to right, #646cff, #858dff);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
+}
+
+.button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+    box-shadow: 0 10px 20px -10px rgba(100, 108, 255, 0.5);
+}
+
+.button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #444;
+}
