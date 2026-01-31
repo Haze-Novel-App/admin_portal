@@ -1,0 +1,209 @@
+/* src/assets/styles/ReviewDashboard.module.css */
+
+.container {
+  display: flex;
+  height: calc(100vh - 100px);
+  gap: 24px;
+  /* Darker background so white cards pop out */
+  background-color: #F1F4F9; 
+  padding: 24px;
+}
+
+/* --- LEFT PANEL --- */
+.bookListPanel {
+  width: 360px;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+}
+
+.panelHeader {
+  padding: 0 0 20px 0;
+}
+
+.panelTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1A1A1A;
+  margin: 0;
+}
+
+.listContent {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 12px; /* Space for scrollbar */
+}
+
+/* --- BOOK CARD STYLING --- */
+.bookItem {
+  padding: 20px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  margin-bottom: 16px;
+  background: #FFFFFF;
+  
+  /* DEFAULT STATE: Stronger Border & Shadow */
+  border: 1px solid #D1D9E6; 
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.bookItem:hover {
+  transform: translateY(-2px);
+  border-color: #B0C4DE;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+}
+
+/* --- ACTIVE SELECTED STATE --- */
+.bookItem.active {
+  background: #FFFDF5; /* Warm, very light gold background */
+  border: 2px solid #D4AF37; /* Strong Gold Border */
+  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.2); /* Gold Glow */
+}
+
+/* Gold Accent Bar on the Left for Active Item */
+.bookItem.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: #D4AF37;
+}
+
+.bookTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2D3748;
+  margin-bottom: 8px;
+}
+
+.bookItem.active .bookTitle {
+  color: #977919; /* Darker Gold Text */
+}
+
+.bookAuthor {
+  font-size: 13px;
+  color: #718096;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  background: #F7FAFC;
+  padding: 6px 10px;
+  border-radius: 6px;
+  width: fit-content;
+}
+
+/* --- RIGHT PANEL --- */
+.detailPanel {
+  flex: 1;
+  background: #FFFFFF;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  border: 1px solid #E2E8F0;
+  display: flex;
+  flex-direction: column;
+}
+
+.detailHeader {
+  padding: 32px;
+  background: #FFFFFF;
+  border-bottom: 1px solid #EEF2F6;
+}
+
+.chapterGrid {
+  padding: 32px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: #FAFBFC;
+  flex: 1;
+}
+
+/* --- CHAPTER CARD --- */
+.chapterCard {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 24px;
+  /* Deeper shadow for chapters */
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05); 
+  border: 1px solid #E2E8F0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s;
+}
+
+/* Color Coded Borders */
+.chapterCard.review { border-left: 5px solid #F6AD55; }
+.chapterCard.published { border-left: 5px solid #48BB78; }
+.chapterCard.approved { border-left: 5px solid #48BB78; }
+.chapterCard.rejected { border-left: 5px solid #F56565; }
+
+.chapterInfo h4 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1A202C;
+}
+
+.chapterMeta {
+  font-size: 13px;
+  color: #718096;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statusPill.review { background: #FFFAF0; color: #C05621; border: 1px solid #FEEBC8; }
+.statusPill.published, .statusPill.approved { background: #F0FFF4; color: #276749; border: 1px solid #C6F6D5; }
+.statusPill.rejected { background: #FFF5F5; color: #9B2C2C; border: 1px solid #FED7D7; }
+.statusPill.draft { background: #F7FAFC; color: #4A5568; border: 1px solid #EDF2F7; }
+
+/* --- BUTTONS --- */
+.actions { display: flex; align-items: center; gap: 12px; }
+
+.btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); box-shadow: none; }
+
+.btnAnalyze { background: #EBF8FF; color: #2B6CB0; border: 1px solid #BEE3F8; }
+.btnAnalyze:hover:not(:disabled) { background: #BEE3F8; }
+
+.btnApprove { background: #F0FFF4; color: #2F855A; border: 1px solid #C6F6D5; }
+.btnApprove:hover:not(:disabled) { background: #C6F6D5; transform: translateY(-1px); }
+
+.btnReject { background: #FFF5F5; color: #C53030; border: 1px solid #FED7D7; }
+.btnReject:hover:not(:disabled) { background: #FED7D7; transform: translateY(-1px); }
+
+.btnOutline { background: white; border: 1px solid #CBD5E0; color: #4A5568; }
+.btnOutline:hover { background: #F7FAFC; border-color: #A0AEC0; }

@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Videos from './pages/Videos';      
 import Settings from './pages/Settings'; 
 import UploadShorts from './pages/UploadShorts'; // <--- Import this
+import ReviewDashboard from './pages/review/ReviewDashboard'; // <--- Import this
 
 function App() {
   return (
@@ -17,7 +18,8 @@ function App() {
           
           {/* Video Management Routes */}
           <Route path="videos" element={<Videos />} />
-          <Route path="videos/new" element={<UploadShorts />} /> {/* <--- New Route */}
+          <Route path="videos/new" element={<UploadShorts />} /> 
+          <Route path="books-review" element={<ReviewDashboard />} /> 
           
           <Route path="settings" element={<Settings />} />
         </Route>

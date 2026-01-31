@@ -29,6 +29,12 @@ export default function AdminLayout() {
             onClick={() => navigate('/dashboard/videos')}
           />
           <NavItem 
+            icon={<Video size={20} />} 
+            label="Books Review" 
+            active={location.pathname === '/dashboard/books-review'}
+            onClick={() => navigate('/dashboard/books-review')}
+          />
+          <NavItem 
             icon={<Settings size={20} />} 
             label="Settings" 
             active={location.pathname === '/dashboard/settings'}
