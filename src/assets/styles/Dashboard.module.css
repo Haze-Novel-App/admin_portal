@@ -31,7 +31,7 @@
 }
 
 .statCard.gold {
-  background: linear-gradient(135deg, #D4AF37 0%, #F3C647 100%);
+  background: linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%);
   color: white;
   border: none;
 }
@@ -68,8 +68,8 @@
   border-radius: 6px;
   font-size: 12px;
   font-weight: 700;
-  background: #FFF9E6;
-  color: #D4AF37;
+  background: #F5F3FF;
+  color: #7C3AED;
 }
 
 .statCard.gold .statBadge {
@@ -85,7 +85,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #D4AF37;
+  color: #7C3AED;
 }
 
 .statCard.gold .iconCircle {

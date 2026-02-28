@@ -10,7 +10,7 @@ export default function UploadShorts() {
   const [title, setTitle] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
-  
+
   // Ref to a hidden video element to process the file
   const videoRef = useRef(null);
 
@@ -27,7 +27,7 @@ export default function UploadShorts() {
     }
 
     setFile(selected);
-    
+
     // Create a local URL to preview and process the video
     const videoUrl = URL.createObjectURL(selected);
     if (videoRef.current) {
@@ -38,7 +38,7 @@ export default function UploadShorts() {
   // 2. Process Video (Duration Check & Thumbnail Generation)
   const handleVideoLoaded = () => {
     const video = videoRef.current;
-    
+
     // Duration Check
     if (video.duration > 65) { // Allow slightly over 60s buffer
       setError('Video is too long. Shorts must be under 60 seconds.');
@@ -47,7 +47,7 @@ export default function UploadShorts() {
     }
 
     // Auto-Generate Thumbnail at 1.0 second mark
-    video.currentTime = 1.0; 
+    video.currentTime = 1.0;
   };
 
   const handleSeeked = () => {
@@ -56,10 +56,10 @@ export default function UploadShorts() {
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    
+
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
+
     // Convert to Blob for uploading
     canvas.toBlob((blob) => {
       setThumbnailBlob(blob);
@@ -112,9 +112,9 @@ export default function UploadShorts() {
     }
   };
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
-    onDrop, 
-    accept: {'video/mp4': ['.mp4', '.mov']},
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { 'video/mp4': ['.mp4', '.mov'] },
     maxFiles: 1
   });
 
@@ -123,13 +123,13 @@ export default function UploadShorts() {
       <h2 style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20 }}>Upload Short</h2>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 24 }}>
-        
+
         {/* LEFT COLUMN: Inputs */}
         <div className="card">
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, color: '#555' }}>Video Title</label>
-          <input 
-            type="text" 
-            value={title} 
+          <input
+            type="text"
+            value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. New Fantasy Arrivals!"
             className="input" // Make sure to define this class in your CSS or use inline styles
@@ -137,12 +137,12 @@ export default function UploadShorts() {
           />
 
           {/* Hidden Video Element for Processing */}
-          <video 
-            ref={videoRef} 
-            style={{ display: 'none' }} 
+          <video
+            ref={videoRef}
+            style={{ display: 'none' }}
             onLoadedMetadata={handleVideoLoaded}
             onSeeked={handleSeeked}
-            muted 
+            muted
           />
 
           {/* Dropzone Area */}
@@ -157,7 +157,7 @@ export default function UploadShorts() {
           }}>
             <input {...getInputProps()} />
             <div style={{ background: '#F4F6F8', width: 60, height: 60, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <UploadCloud size={24} color="#D4AF37" />
+              <UploadCloud size={24} color="#7C3AED" />
             </div>
             <p style={{ fontWeight: 600, color: '#333' }}>Click or drag video here</p>
             <p style={{ fontSize: 13, color: '#888', marginTop: 4 }}>MP4 or MOV, Max 60s</p>
@@ -169,14 +169,14 @@ export default function UploadShorts() {
             </div>
           )}
 
-          <button 
+          <button
             onClick={handleUpload}
             disabled={uploading || !file}
             style={{
               width: '100%',
               marginTop: 24,
               padding: 14,
-              background: '#D4AF37',
+              background: '#7C3AED',
               color: 'white',
               border: 'none',
               borderRadius: 10,
@@ -193,12 +193,12 @@ export default function UploadShorts() {
         {/* RIGHT COLUMN: Preview */}
         <div>
           <div style={{ fontWeight: 600, marginBottom: 12, color: '#555' }}>Mobile Preview</div>
-          <div style={{ 
-            width: '100%', 
-            aspectRatio: '9/16', 
-            background: '#1a1a1a', 
-            borderRadius: 20, 
-            overflow: 'hidden', 
+          <div style={{
+            width: '100%',
+            aspectRatio: '9/16',
+            background: '#1a1a1a',
+            borderRadius: 20,
+            overflow: 'hidden',
             position: 'relative',
             border: '4px solid #333',
             boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
@@ -208,11 +208,11 @@ export default function UploadShorts() {
                 <img src={thumbnailPreview} alt="Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.8))' }} />
                 <div style={{ position: 'absolute', bottom: 20, left: 16, right: 16, color: 'white' }}>
-                   <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{title || 'Video Title'}</div>
-                   <div style={{ fontSize: 12, opacity: 0.8 }}>Admin • Just now</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{title || 'Video Title'}</div>
+                  <div style={{ fontSize: 12, opacity: 0.8 }}>Admin • Just now</div>
                 </div>
                 <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', borderRadius: '50%', width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                   <Play size={24} fill="white" stroke="none" />
+                  <Play size={24} fill="white" stroke="none" />
                 </div>
               </>
             ) : (

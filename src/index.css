@@ -2,8 +2,8 @@
   /* Core Colors extracted from your image */
   --bg-main: #F4F6F8;        /* Light Gray Background */
   --bg-card: #FFFFFF;        /* White Card Background */
-  --primary: #D4AF37;        /* The Gold/Yellow Accent */
-  --primary-light: #FFF8E1;  /* Very light yellow for active states */
+  --primary: #7C3AED;        /* Purple Accent */
+  --primary-light: #F5F3FF;  /* Very light purple for active states */
   --text-main: #1A1A1A;      /* Almost Black */
   --text-muted: #8898AA;     /* Gray text */
   --border: #E8E8E8;

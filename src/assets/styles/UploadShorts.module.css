@@ -50,7 +50,7 @@
 }
 
 .input:focus {
-  border-color: #D4AF37;
+  border-color: #7C3AED;
 }
 
 .dropzone {
@@ -63,21 +63,22 @@
   background: #F9FAFB;
 }
 
-.dropzone.active, .dropzone:hover {
-  border-color: #D4AF37;
-  background: #FFFDF5;
+.dropzone.active,
+.dropzone:hover {
+  border-color: #7C3AED;
+  background: #F5F3FF;
 }
 
 .uploadIcon {
   width: 64px;
   height: 64px;
-  background: #FFF9E6;
+  background: #F5F3FF;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 16px;
-  color: #D4AF37;
+  color: #7C3AED;
 }
 
 .dropTextPrimary {
@@ -108,7 +109,7 @@
   width: 100%;
   margin-top: 24px;
   padding: 14px;
-  background: #D4AF37;
+  background: #7C3AED;
   color: white;
   border: none;
   border-radius: 12px;
@@ -119,7 +120,7 @@
 }
 
 .submitBtn:hover {
-  background: #c5a028;
+  background: #6D28D9;
 }
 
 .submitBtn:disabled {
@@ -172,7 +173,7 @@
   font-size: 15px;
   font-weight: 700;
   margin-bottom: 4px;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .previewAuthor {
@@ -209,7 +210,7 @@
   .layout {
     grid-template-columns: 1fr;
   }
-  
+
   .phoneFrame {
     max-width: 300px;
     margin: 0 auto;

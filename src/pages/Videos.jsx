@@ -7,7 +7,7 @@ export default function Videos() {
   const navigate = useNavigate();
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // State for the video player modal
   const [selectedVideo, setSelectedVideo] = useState(null);
 
@@ -51,14 +51,14 @@ export default function Videos() {
           <h2 style={{ fontSize: 24, fontWeight: 700, margin: 0, color: '#1A1A1A' }}>Video Library</h2>
           <p style={{ margin: '4px 0 0', color: '#8898AA', fontSize: 14 }}>Manage your shorts and promotional content</p>
         </div>
-        
-        <button 
+
+        <button
           onClick={() => navigate('/dashboard/videos/new')}
           style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            background: '#D4AF37', color: 'white', border: 'none',
+            background: '#7C3AED', color: 'white', border: 'none',
             padding: '12px 24px', borderRadius: 12, fontSize: 14, fontWeight: 600,
-            cursor: 'pointer', boxShadow: '0 4px 12px rgba(212, 175, 55, 0.3)'
+            cursor: 'pointer', boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
           }}
         >
           <Plus size={18} /> Upload New Video
@@ -69,10 +69,10 @@ export default function Videos() {
       <div className="card" style={{ marginBottom: 24, display: 'flex', gap: 16, padding: 16 }}>
         <div style={{ flex: 1, position: 'relative' }}>
           <Search size={18} color="#8898AA" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
-          <input 
-            type="text" 
-            placeholder="Search videos..." 
-            style={{ width: '100%', padding: '10px 10px 10px 42px', borderRadius: 8, border: '1px solid #E8E8E8', fontSize: 14, outline: 'none' }} 
+          <input
+            type="text"
+            placeholder="Search videos..."
+            style={{ width: '100%', padding: '10px 10px 10px 42px', borderRadius: 8, border: '1px solid #E8E8E8', fontSize: 14, outline: 'none' }}
           />
         </div>
       </div>
@@ -83,7 +83,7 @@ export default function Videos() {
       ) : videos.length === 0 ? (
         <div className="card" style={{ minHeight: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#8898AA' }}>
           <div style={{ background: '#F4F6F8', padding: 20, borderRadius: '50%', marginBottom: 16 }}>
-            <Plus size={32} color="#D4AF37" />
+            <Plus size={32} color="#7C3AED" />
           </div>
           <h3 style={{ margin: '0 0 8px', color: '#1A1A1A' }}>No videos yet</h3>
           <p style={{ margin: 0, fontSize: 14 }}>Upload your first short to get started.</p>
@@ -92,29 +92,29 @@ export default function Videos() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 24 }}>
           {videos.map((video) => (
             <div key={video.id} className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column' }}>
-              
+
               {/* Thumbnail Container (Clickable) */}
-              <div 
+              <div
                 onClick={() => setSelectedVideo(video)} // <--- CLICK TO OPEN MODAL
-                style={{ 
-                  position: 'relative', 
-                  aspectRatio: '9/16', 
-                  borderRadius: 12, 
-                  overflow: 'hidden', 
+                style={{
+                  position: 'relative',
+                  aspectRatio: '9/16',
+                  borderRadius: 12,
+                  overflow: 'hidden',
                   marginBottom: 16,
                   backgroundColor: '#000',
                   cursor: 'pointer',
                   group: 'thumbnail'
                 }}
               >
-                <img 
-                  src={video.thumbnail_url} 
-                  alt={video.title} 
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s' }} 
+                <img
+                  src={video.thumbnail_url}
+                  alt={video.title}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s' }}
                 />
                 {/* Play Button Overlay */}
-                <div style={{ 
-                  position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', 
+                <div style={{
+                  position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   opacity: 0.8, transition: 'opacity 0.2s'
                 }}>
@@ -138,7 +138,7 @@ export default function Videos() {
                 <span style={{ fontSize: 12, color: '#4CAF50', fontWeight: 600, background: '#E8F5E9', padding: '4px 8px', borderRadius: 6 }}>
                   Active
                 </span>
-                <button 
+                <button
                   onClick={() => deleteVideo(video.id)}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#FF5252', padding: 4 }}
                   title="Delete Video"
@@ -160,9 +160,9 @@ export default function Videos() {
           display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
           <div style={{ position: 'relative', width: '90%', maxWidth: '400px', aspectRatio: '9/16' }}>
-            
+
             {/* Close Button */}
-            <button 
+            <button
               onClick={() => setSelectedVideo(null)}
               style={{
                 position: 'absolute', top: -50, right: 0,
@@ -175,10 +175,10 @@ export default function Videos() {
             </button>
 
             {/* Video Player */}
-            <video 
-              src={selectedVideo.video_url} 
-              controls 
-              autoPlay 
+            <video
+              src={selectedVideo.video_url}
+              controls
+              autoPlay
               style={{ width: '100%', height: '100%', borderRadius: 16, boxShadow: '0 20px 50px rgba(0,0,0,0.5)', background: 'black' }}
             />
           </div>

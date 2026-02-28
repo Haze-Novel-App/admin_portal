@@ -24,7 +24,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #D4AF37;
+  background: #7C3AED;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -32,13 +32,13 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
   transition: transform 0.2s ease, background 0.2s ease;
 }
 
 .uploadBtn:hover {
   transform: translateY(-2px);
-  background: #c5a028;
+  background: #6D28D9;
 }
 
 /* --- SEARCH BAR --- */
@@ -76,7 +76,7 @@
 }
 
 .searchInput:focus {
-  border-color: #D4AF37;
+  border-color: #7C3AED;
 }
 
 /* --- VIDEO GRID --- */

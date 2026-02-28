@@ -2,109 +2,142 @@
 
 .container {
   display: flex;
-  height: calc(100vh - 100px);
-  gap: 24px;
-  /* Darker background so white cards pop out */
-  background-color: #F1F4F9; 
-  padding: 24px;
-}
-
-/* --- LEFT PANEL --- */
-.bookListPanel {
-  width: 360px;
-  background: transparent;
-  display: flex;
   flex-direction: column;
+  min-height: calc(100vh - 100px);
+  padding: 24px;
+  background-color: #F1F4F9;
 }
 
-.panelHeader {
-  padding: 0 0 20px 0;
+/* --- PAGE HEADER --- */
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
 }
 
-.panelTitle {
-  font-size: 20px;
+.pageTitle {
+  font-size: 24px;
   font-weight: 800;
   color: #1A1A1A;
   margin: 0;
 }
 
-.listContent {
-  flex: 1;
-  overflow-y: auto;
-  padding-right: 12px; /* Space for scrollbar */
+.bookCount {
+  font-size: 14px;
+  color: #718096;
+  font-weight: 500;
+  margin-left: 12px;
 }
 
-/* --- BOOK CARD STYLING --- */
-.bookItem {
-  padding: 20px;
-  border-radius: 12px;
+/* --- BACK BUTTON --- */
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+  background: white;
+  color: #4A5568;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  margin-bottom: 16px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.backBtn:hover {
+  background: #F7FAFC;
+  border-color: #7C3AED;
+  color: #7C3AED;
+  transform: translateY(-1px);
+}
+
+/* --- BOOK GRID --- */
+.booksGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 24px;
+}
+
+/* --- BOOK CARD --- */
+.bookCard {
   background: #FFFFFF;
-  
-  /* DEFAULT STATE: Stronger Border & Shadow */
-  border: 1px solid #D1D9E6; 
-  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.bookCard:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 32px rgba(124, 58, 237, 0.15);
+  border-color: #7C3AED;
+}
+
+.coverContainer {
+  width: 100%;
+  aspect-ratio: 3/4;
+  background: linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 50%, #C4B5FD 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
   position: relative;
+}
+
+.coverImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.coverPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #7C3AED;
+  opacity: 0.5;
+}
+
+.bookCardInfo {
+  padding: 16px;
+}
+
+.bookCardTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1A202C;
+  margin: 0 0 8px 0;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.bookItem:hover {
-  transform: translateY(-2px);
-  border-color: #B0C4DE;
-  box-shadow: 0 6px 12px rgba(0,0,0,0.08);
-}
-
-/* --- ACTIVE SELECTED STATE --- */
-.bookItem.active {
-  background: #FFFDF5; /* Warm, very light gold background */
-  border: 2px solid #D4AF37; /* Strong Gold Border */
-  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.2); /* Gold Glow */
-}
-
-/* Gold Accent Bar on the Left for Active Item */
-.bookItem.active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 6px;
-  background: #D4AF37;
-}
-
-.bookTitle {
-  font-size: 16px;
-  font-weight: 700;
-  color: #2D3748;
-  margin-bottom: 8px;
-}
-
-.bookItem.active .bookTitle {
-  color: #977919; /* Darker Gold Text */
-}
-
-.bookAuthor {
+.bookCardAuthor {
   font-size: 13px;
   color: #718096;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-weight: 500;
-  background: #F7FAFC;
-  padding: 6px 10px;
-  border-radius: 6px;
-  width: fit-content;
 }
 
-/* --- RIGHT PANEL --- */
+/* --- DETAIL VIEW (when a book is selected) --- */
 .detailPanel {
   flex: 1;
   background: #FFFFFF;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
   border: 1px solid #E2E8F0;
   display: flex;
   flex-direction: column;
@@ -131,8 +164,7 @@
   background: #FFFFFF;
   border-radius: 12px;
   padding: 24px;
-  /* Deeper shadow for chapters */
-  box-shadow: 0 2px 12px rgba(0,0,0,0.05); 
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
   border: 1px solid #E2E8F0;
   display: flex;
   justify-content: space-between;
@@ -140,11 +172,21 @@
   transition: transform 0.2s;
 }
 
-/* Color Coded Borders */
-.chapterCard.review { border-left: 5px solid #F6AD55; }
-.chapterCard.published { border-left: 5px solid #48BB78; }
-.chapterCard.approved { border-left: 5px solid #48BB78; }
-.chapterCard.rejected { border-left: 5px solid #F56565; }
+.chapterCard.review {
+  border-left: 5px solid #F6AD55;
+}
+
+.chapterCard.published {
+  border-left: 5px solid #48BB78;
+}
+
+.chapterCard.approved {
+  border-left: 5px solid #48BB78;
+}
+
+.chapterCard.rejected {
+  border-left: 5px solid #F56565;
+}
 
 .chapterInfo h4 {
   margin: 0 0 8px 0;
@@ -172,13 +214,37 @@
   letter-spacing: 0.5px;
 }
 
-.statusPill.review { background: #FFFAF0; color: #C05621; border: 1px solid #FEEBC8; }
-.statusPill.published, .statusPill.approved { background: #F0FFF4; color: #276749; border: 1px solid #C6F6D5; }
-.statusPill.rejected { background: #FFF5F5; color: #9B2C2C; border: 1px solid #FED7D7; }
-.statusPill.draft { background: #F7FAFC; color: #4A5568; border: 1px solid #EDF2F7; }
+.statusPill.review {
+  background: #FFFAF0;
+  color: #C05621;
+  border: 1px solid #FEEBC8;
+}
+
+.statusPill.published,
+.statusPill.approved {
+  background: #F0FFF4;
+  color: #276749;
+  border: 1px solid #C6F6D5;
+}
+
+.statusPill.rejected {
+  background: #FFF5F5;
+  color: #9B2C2C;
+  border: 1px solid #FED7D7;
+}
+
+.statusPill.draft {
+  background: #F7FAFC;
+  color: #4A5568;
+  border: 1px solid #EDF2F7;
+}
 
 /* --- BUTTONS --- */
-.actions { display: flex; align-items: center; gap: 12px; }
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
 .btn {
   padding: 10px 20px;
@@ -191,19 +257,86 @@
   align-items: center;
   gap: 8px;
   transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); box-shadow: none; }
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(1);
+  box-shadow: none;
+}
 
-.btnAnalyze { background: #EBF8FF; color: #2B6CB0; border: 1px solid #BEE3F8; }
-.btnAnalyze:hover:not(:disabled) { background: #BEE3F8; }
+.btnAnalyze {
+  background: #EBF8FF;
+  color: #2B6CB0;
+  border: 1px solid #BEE3F8;
+}
 
-.btnApprove { background: #F0FFF4; color: #2F855A; border: 1px solid #C6F6D5; }
-.btnApprove:hover:not(:disabled) { background: #C6F6D5; transform: translateY(-1px); }
+.btnAnalyze:hover:not(:disabled) {
+  background: #BEE3F8;
+}
 
-.btnReject { background: #FFF5F5; color: #C53030; border: 1px solid #FED7D7; }
-.btnReject:hover:not(:disabled) { background: #FED7D7; transform: translateY(-1px); }
+.btnApprove {
+  background: #F0FFF4;
+  color: #2F855A;
+  border: 1px solid #C6F6D5;
+}
 
-.btnOutline { background: white; border: 1px solid #CBD5E0; color: #4A5568; }
-.btnOutline:hover { background: #F7FAFC; border-color: #A0AEC0; }
+.btnApprove:hover:not(:disabled) {
+  background: #C6F6D5;
+  transform: translateY(-1px);
+}
+
+.btnReject {
+  background: #FFF5F5;
+  color: #C53030;
+  border: 1px solid #FED7D7;
+}
+
+.btnReject:hover:not(:disabled) {
+  background: #FED7D7;
+  transform: translateY(-1px);
+}
+
+.btnOutline {
+  background: white;
+  border: 1px solid #CBD5E0;
+  color: #4A5568;
+}
+
+.btnOutline:hover {
+  background: #F7FAFC;
+  border-color: #A0AEC0;
+}
+
+/* --- EMPTY STATE --- */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  color: #A0AEC0;
+}
+
+.emptyState h3 {
+  color: #718096;
+  margin: 16px 0 4px;
+  font-size: 18px;
+}
+
+.emptyState p {
+  color: #A0AEC0;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* --- LOADING STATE --- */
+.loadingState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  color: #888;
+}
