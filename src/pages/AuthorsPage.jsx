@@ -125,7 +125,11 @@ export default function AuthorsPage() {
         const isCurrentlyBlocked = author.is_blocked;
         const action = isCurrentlyBlocked ? 'unblock' : 'block';
 
-        if (!confirm(`Are you sure you want to ${action} "${author.full_name || author.email}"?`)) return;
+        const confirmMsg = isCurrentlyBlocked
+            ? `Are you sure you want to unblock "${author.full_name || 'this author'}"?\n\nTheir books will be visible to readers again and they will be able to log in.`
+            : `Are you sure you want to block "${author.full_name || 'this author'}"?\n\nThis will:\n• Hide all their books from readers\n• Prevent them from logging in\n• They will need to be unblocked to regain access`;
+
+        if (!confirm(confirmMsg)) return;
 
         try {
             const { error } = await supabase
@@ -140,7 +144,10 @@ export default function AuthorsPage() {
             setSelectedAuthor(updated);
             setAuthors(prev => prev.map(a => a.id === author.id ? updated : a));
 
-            alert(`Author ${action}ed successfully.`);
+            const successMsg = isCurrentlyBlocked
+                ? `${author.full_name || 'Author'} has been unblocked. Their books are now visible and they can log in again.`
+                : `${author.full_name || 'Author'} has been blocked. Their books are now hidden from readers and they cannot log in.`;
+            alert(successMsg);
         } catch (error) {
             console.error('Error toggling block:', error);
             alert('Failed to update: ' + error.message);
