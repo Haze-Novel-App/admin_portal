@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { Users, BookOpen, Video, ArrowUpRight, TrendingUp } from 'lucide-react';
+import { Users, BookOpen, Video, ArrowUpRight, TrendingUp, Clock } from 'lucide-react';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ readers: 0, authors: 0, videos: 0 });
+  const [stats, setStats] = useState({ readers: 0, authors: 0, videos: 0, books: 0, readTimeHours: 0 });
+  const [weeklyStats, setWeeklyStats] = useState({ newReaders: 0, newAuthors: 0, newBooks: 0 });
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -16,20 +17,52 @@ export default function Dashboard() {
     try {
       setLoading(true);
 
-      // 1. GET TOTAL COUNTS (The fast way)
-      // count: 'exact' gives us the number without downloading all rows
+      // 1. GET TOTAL COUNTS
       const { count: readerCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'reader');
       const { count: authorCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'author');
       const { count: videoCount } = await supabase.from('app_shorts').select('*', { count: 'exact', head: true });
+      const { count: bookCount } = await supabase.from('books').select('*', { count: 'exact', head: true });
+
+      // 2. ESTIMATE READING TIME from reading_progress + chapter word counts
+      let totalReadMinutes = 0;
+      try {
+        // Get all reading progress entries with their book's chapters
+        const { data: progressData } = await supabase
+          .from('reading_progress')
+          .select('book_id, last_read_chapter');
+
+        if (progressData && progressData.length > 0) {
+          // For each progress entry, get word counts of chapters read
+          const bookIds = [...new Set(progressData.map(p => p.book_id))];
+          const { data: chaptersData } = await supabase
+            .from('chapters')
+            .select('book_id, chapter_number, word_count')
+            .in('book_id', bookIds);
+
+          if (chaptersData) {
+            // Sum word counts of chapters each user has read through
+            progressData.forEach(progress => {
+              const readChapters = chaptersData.filter(
+                c => c.book_id === progress.book_id && c.chapter_number <= (progress.last_read_chapter || 0)
+              );
+              const wordsRead = readChapters.reduce((sum, c) => sum + (c.word_count || 0), 0);
+              totalReadMinutes += wordsRead / 200; // ~200 words per minute
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Could not estimate reading time:', e);
+      }
 
       setStats({
         readers: readerCount || 0,
         authors: authorCount || 0,
-        videos: videoCount || 0
+        videos: videoCount || 0,
+        books: bookCount || 0,
+        readTimeHours: Math.round(totalReadMinutes / 60),
       });
 
-      // 2. GET CHART DATA (Growth last 7 days)
-      // We fetch "created_at" for all profiles created in the last 7 days
+      // 3. WEEKLY CHANGES (profiles created in last 7 days)
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -39,7 +72,22 @@ export default function Dashboard() {
         .gte('created_at', sevenDaysAgo.toISOString())
         .order('created_at', { ascending: true });
 
-      // Process data for the chart
+      const weekReaders = (profiles || []).filter(p => p.role === 'reader').length;
+      const weekAuthors = (profiles || []).filter(p => p.role === 'author').length;
+
+      // New books this week
+      const { count: newBooksCount } = await supabase
+        .from('books')
+        .select('*', { count: 'exact', head: true })
+        .gte('submitted_at', sevenDaysAgo.toISOString());
+
+      setWeeklyStats({
+        newReaders: weekReaders,
+        newAuthors: weekAuthors,
+        newBooks: newBooksCount || 0,
+      });
+
+      // 4. CHART DATA
       const dailyData = processChartData(profiles || []);
       setChartData(dailyData);
 
@@ -76,33 +124,44 @@ export default function Dashboard() {
     return Object.values(days);
   }
 
+  const formatWeekly = (count) => {
+    if (count === 0) return 'No change';
+    return `+${count} this week`;
+  };
+
   return (
     <div>
       {/* Top Cards Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24, marginBottom: 30 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20, marginBottom: 30 }}>
         <StatCard
           title="Total Readers"
           value={loading ? '...' : stats.readers}
           icon={<BookOpen size={24} />}
-          percent={loading ? '' : "+2 this week"}
+          percent={loading ? '' : formatWeekly(weeklyStats.newReaders)}
         />
         <StatCard
           title="Total Authors"
           value={loading ? '...' : stats.authors}
           icon={<Users size={24} />}
-          percent={loading ? '' : "+1 this week"}
+          percent={loading ? '' : formatWeekly(weeklyStats.newAuthors)}
         />
         <StatCard
           title="Active Videos"
           value={loading ? '...' : stats.videos}
           icon={<Video size={24} />}
-          percent="Live"
+          percent={loading ? '' : 'Live'}
         />
         <StatCard
-          title="Revenue"
-          value="$0.00"
-          icon={<TrendingUp size={24} />}
-          percent="Coming Soon"
+          title="Total Books"
+          value={loading ? '...' : stats.books}
+          icon={<BookOpen size={24} />}
+          percent={loading ? '' : formatWeekly(weeklyStats.newBooks)}
+        />
+        <StatCard
+          title="Reading Time"
+          value={loading ? '...' : `${stats.readTimeHours}h`}
+          icon={<Clock size={24} />}
+          percent="All users"
           isGold
         />
       </div>
