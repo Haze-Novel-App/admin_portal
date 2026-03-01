@@ -414,6 +414,7 @@
 
 
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import {
   Book, User, Bot, Check, X, FileText,
@@ -423,6 +424,7 @@ import ChapterReportView from './ChapterReportView'; // IMPORT THE NEW PAGE
 import styles from '../../assets/styles/ReviewDashboard.module.css';
 
 export default function ReviewDashboard() {
+  const location = useLocation();
   const [books, setBooks] = useState([]);
   const [selectedBook, setSelectedBook] = useState(null);
   const [chapters, setChapters] = useState([]);
@@ -441,6 +443,15 @@ export default function ReviewDashboard() {
   useEffect(() => {
     fetchReviewBooks();
   }, []);
+
+  // Auto-select book if navigated from Authors page
+  useEffect(() => {
+    if (location.state?.selectedBook && !loading) {
+      handleSelectBook(location.state.selectedBook);
+      // Clear the state so it doesn't re-trigger
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, loading]);
 
   async function fetchReviewBooks() {
     try {
@@ -524,7 +535,32 @@ export default function ReviewDashboard() {
       }
 
       setCurrentReport(data);
-      setViewingReportChapter(chapter); // This triggers the view switch
+
+      // If chapter has no word_count, calculate it from the content
+      let updatedChapter = chapter;
+      if (!chapter.word_count && chapter.content_url) {
+        try {
+          let storagePath = chapter.content_url;
+          if (storagePath.includes('supabase.co/storage/v1/object/public/chapters/')) {
+            storagePath = storagePath.split('/chapters/')[1];
+          } else if (storagePath.startsWith('chapters/')) {
+            storagePath = storagePath.substring(9);
+          }
+          const { data: fileData } = await supabase.storage.from('chapters').download(storagePath);
+          if (fileData) {
+            const textContent = await fileData.text();
+            const wordCount = textContent.trim().split(/\s+/).filter(w => w.length > 0).length;
+            updatedChapter = { ...chapter, word_count: wordCount };
+            // Also update the DB for next time
+            await supabase.from('chapters').update({ word_count: wordCount }).eq('id', chapter.id);
+            // Update local state
+            setChapters(prev => prev.map(c => c.id === chapter.id ? { ...c, word_count: wordCount } : c));
+          }
+        } catch (e) {
+          console.warn('Could not calculate word count:', e);
+        }
+      }
+      setViewingReportChapter(updatedChapter);
 
     } catch (error) {
       console.error("Error fetching report:", error);
@@ -569,6 +605,12 @@ export default function ReviewDashboard() {
       });
 
       if (dbError) throw new Error("Database Save Error: " + dbError.message);
+
+      // Calculate and save word count
+      const wordCount = textContent.trim().split(/\s+/).filter(w => w.length > 0).length;
+      await supabase.from('chapters').update({ word_count: wordCount }).eq('id', chapter.id);
+      // Update local state
+      setChapters(prev => prev.map(c => c.id === chapter.id ? { ...c, word_count: wordCount } : c));
 
       setAnalyzedIds(prev => new Set(prev).add(chapter.id));
       alert("Analysis Complete!");

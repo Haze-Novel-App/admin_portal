@@ -12,15 +12,15 @@
 //     <BrowserRouter>
 //       <Routes>
 //         <Route path="/" element={<Login />} />
-        
+
 //         <Route path="/dashboard" element={<AdminLayout />}>
 //           <Route index element={<Dashboard />} />
-          
+
 //           {/* Video Management Routes */}
 //           <Route path="videos" element={<Videos />} />
 //           <Route path="videos/new" element={<UploadShorts />} /> 
 //           <Route path="books-review" element={<ReviewDashboard />} /> 
-          
+
 //           <Route path="settings" element={<Settings />} />
 //         </Route>
 //       </Routes>
@@ -49,10 +49,11 @@ import { supabase } from './supabaseClient';
 import Login from './pages/Login';
 import AdminLayout from './components/AdminLayout';
 import Dashboard from './pages/Dashboard';
-import Videos from './pages/Videos';      
-import Settings from './pages/Settings'; 
+import Videos from './pages/Videos';
+import Settings from './pages/Settings';
 import UploadShorts from './pages/UploadShorts';
 import ReviewDashboard from './pages/review/ReviewDashboard';
+import AuthorsPage from './pages/AuthorsPage';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -79,20 +80,21 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* If session exists, "/" sends you to dashboard. Otherwise, show Login. */}
-        <Route 
-          path="/" 
-          element={session ? <Navigate to="/dashboard" replace /> : <Login />} 
+        <Route
+          path="/"
+          element={session ? <Navigate to="/dashboard" replace /> : <Login />}
         />
-        
+
         {/* PROTECTED ROUTES: If no session, any /dashboard access redirects to "/" (Login) */}
-        <Route 
-          path="/dashboard" 
+        <Route
+          path="/dashboard"
           element={session ? <AdminLayout /> : <Navigate to="/" replace />}
         >
           <Route index element={<Dashboard />} />
           <Route path="videos" element={<Videos />} />
-          <Route path="videos/new" element={<UploadShorts />} /> 
-          <Route path="books-review" element={<ReviewDashboard />} /> 
+          <Route path="videos/new" element={<UploadShorts />} />
+          <Route path="books-review" element={<ReviewDashboard />} />
+          <Route path="authors" element={<AuthorsPage />} />
           <Route path="settings" element={<Settings />} />
         </Route>
 

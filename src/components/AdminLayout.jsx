@@ -110,7 +110,7 @@
 
 
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Video, Settings, LogOut, Bell, Search, User } from 'lucide-react';
+import { LayoutDashboard, Video, Settings, LogOut, Bell, Search, User, Users } from 'lucide-react';
 import { supabase } from '../supabaseClient'; // Ensure this path is correct
 import styles from './AdminLayout.module.css';
 
@@ -159,6 +159,12 @@ export default function AdminLayout() {
             label="Books Review"
             active={location.pathname === '/dashboard/books-review'}
             onClick={() => navigate('/dashboard/books-review')}
+          />
+          <NavItem
+            icon={<Users size={20} />}
+            label="Authors"
+            active={location.pathname === '/dashboard/authors'}
+            onClick={() => navigate('/dashboard/authors')}
           />
           <NavItem
             icon={<Settings size={20} />}
