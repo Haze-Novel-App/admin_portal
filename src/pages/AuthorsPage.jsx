@@ -133,9 +133,10 @@ export default function AuthorsPage() {
 
         try {
             const { error } = await supabase
-                .from('profiles')
-                .update({ is_blocked: !isCurrentlyBlocked })
-                .eq('id', author.id);
+                .rpc('toggle_author_block', {
+                    author_id: author.id,
+                    block_status: !isCurrentlyBlocked,
+                });
 
             if (error) throw error;
 

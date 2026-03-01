@@ -5,14 +5,20 @@
 -- 1. Add is_blocked column to profiles (if it doesn't exist)
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT false;
 
--- 2. RLS Policy: Hide blocked authors' books from ALL readers
--- First, make sure RLS is enabled on books
+-- 2. Enable RLS
 ALTER TABLE books ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chapters ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policy if it conflicts (safe to ignore "does not exist" errors)
+-- ============================================
+-- BOOKS POLICIES
+-- ============================================
 DROP POLICY IF EXISTS "Hide blocked author books" ON books;
+DROP POLICY IF EXISTS "Allow all for authenticated users on books" ON books;
+DROP POLICY IF EXISTS "Allow insert books" ON books;
+DROP POLICY IF EXISTS "Allow update books" ON books;
+DROP POLICY IF EXISTS "Allow delete books" ON books;
 
--- Create the policy: any SELECT on books automatically excludes blocked authors
+-- SELECT: Hide blocked authors' books
 CREATE POLICY "Hide blocked author books"
   ON books FOR SELECT
   USING (
@@ -23,11 +29,29 @@ CREATE POLICY "Hide blocked author books"
     )
   );
 
--- 3. Also hide chapters of blocked authors' books
-ALTER TABLE chapters ENABLE ROW LEVEL SECURITY;
+-- INSERT / UPDATE / DELETE: Allow all authenticated users
+CREATE POLICY "Allow insert books"
+  ON books FOR INSERT
+  WITH CHECK (auth.role() = 'authenticated');
 
+CREATE POLICY "Allow update books"
+  ON books FOR UPDATE
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow delete books"
+  ON books FOR DELETE
+  USING (auth.role() = 'authenticated');
+
+-- ============================================
+-- CHAPTERS POLICIES
+-- ============================================
 DROP POLICY IF EXISTS "Hide blocked author chapters" ON chapters;
+DROP POLICY IF EXISTS "Allow all for authenticated users on chapters" ON chapters;
+DROP POLICY IF EXISTS "Allow insert chapters" ON chapters;
+DROP POLICY IF EXISTS "Allow update chapters" ON chapters;
+DROP POLICY IF EXISTS "Allow delete chapters" ON chapters;
 
+-- SELECT: Hide blocked authors' chapters
 CREATE POLICY "Hide blocked author chapters"
   ON chapters FOR SELECT
   USING (
@@ -38,3 +62,16 @@ CREATE POLICY "Hide blocked author chapters"
       AND profiles.is_blocked = true
     )
   );
+
+-- INSERT / UPDATE / DELETE: Allow all authenticated users
+CREATE POLICY "Allow insert chapters"
+  ON chapters FOR INSERT
+  WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow update chapters"
+  ON chapters FOR UPDATE
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow delete chapters"
+  ON chapters FOR DELETE
+  USING (auth.role() = 'authenticated');
