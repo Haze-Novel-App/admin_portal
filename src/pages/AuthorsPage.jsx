@@ -21,55 +21,43 @@ export default function AuthorsPage() {
 
     async function fetchAuthors() {
         try {
-            // Fetch all books to extract unique authors
-            const { data: books, error } = await supabase
-                .from('books')
-                .select('author_id, author_name, submitted_at')
-                .order('submitted_at', { ascending: false });
+            // Fetch authors from profiles table directly (not from books)
+            // This ensures blocked authors still appear in the admin list
+            const { data: profiles, error: profilesError } = await supabase
+                .from('profiles')
+                .select('id, username, updated_at, is_blocked')
+                .eq('role', 'author')
+                .order('updated_at', { ascending: false });
 
-            if (error) throw error;
+            if (profilesError) throw profilesError;
 
-            // Build unique authors map from books data
-            const authorsMap = new Map();
-            (books || []).forEach(book => {
-                const key = book.author_id || book.author_name;
-                if (!key) return;
-                if (!authorsMap.has(key)) {
-                    authorsMap.set(key, {
-                        id: book.author_id,
-                        full_name: book.author_name || 'Unknown Author',
-                        bookCount: 1,
-                        latestSubmission: book.submitted_at,
-                        is_blocked: false,
-                    });
-                } else {
-                    authorsMap.get(key).bookCount += 1;
-                }
-            });
+            // Get book counts for each author using a separate query
+            // Note: books of blocked authors may be hidden by RLS,
+            // so we count separately and don't rely on books for the author list
+            const authorIds = (profiles || []).map(p => p.id);
+            let bookCountMap = new Map();
 
-            const authorsList = Array.from(authorsMap.values());
-
-            // Try to enrich with profile data (email, created_at, is_blocked)
-            const authorIds = authorsList.filter(a => a.id).map(a => a.id);
             if (authorIds.length > 0) {
-                const { data: profiles } = await supabase
-                    .from('profiles')
-                    .select('id, email, full_name, created_at, is_blocked')
-                    .in('id', authorIds);
+                const { data: books } = await supabase
+                    .from('books')
+                    .select('author_id');
 
-                if (profiles) {
-                    const profileMap = new Map(profiles.map(p => [p.id, p]));
-                    authorsList.forEach(author => {
-                        const profile = profileMap.get(author.id);
-                        if (profile) {
-                            author.email = profile.email;
-                            author.full_name = profile.full_name || author.full_name;
-                            author.created_at = profile.created_at;
-                            author.is_blocked = profile.is_blocked || false;
+                if (books) {
+                    books.forEach(book => {
+                        if (book.author_id) {
+                            bookCountMap.set(book.author_id, (bookCountMap.get(book.author_id) || 0) + 1);
                         }
                     });
                 }
             }
+
+            const authorsList = (profiles || []).map(profile => ({
+                id: profile.id,
+                full_name: profile.username || 'Unknown Author',
+                created_at: profile.updated_at,
+                is_blocked: profile.is_blocked || false,
+                bookCount: bookCountMap.get(profile.id) || 0,
+            }));
 
             setAuthors(authorsList);
         } catch (error) {
@@ -132,9 +120,10 @@ export default function AuthorsPage() {
         if (!confirm(confirmMsg)) return;
 
         try {
+            // Use RPC function with SECURITY DEFINER to bypass RLS
             const { error } = await supabase
                 .rpc('toggle_author_block', {
-                    author_id: author.id,
+                    target_author_id: author.id,
                     block_status: !isCurrentlyBlocked,
                 });
 
@@ -162,7 +151,7 @@ export default function AuthorsPage() {
 
     // Get initials for avatar
     const getInitials = (author) => {
-        const name = author.full_name || author.email || '?';
+        const name = author.full_name || '?';
         return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
     };
 
@@ -182,9 +171,6 @@ export default function AuthorsPage() {
                                 {selectedAuthor.full_name || 'Unnamed Author'}
                             </h2>
                             <div className={styles.authorMeta}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <Mail size={14} /> {selectedAuthor.email || 'No email'}
-                                </span>
                                 {selectedAuthor.created_at && (
                                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                         <Calendar size={14} /> Joined {new Date(selectedAuthor.created_at).toLocaleDateString()}
@@ -309,7 +295,7 @@ export default function AuthorsPage() {
                                             {author.full_name || 'Unnamed Author'}
                                         </div>
                                         <div className={styles.authorCardEmail}>
-                                            {author.email || `${author.bookCount} book${author.bookCount !== 1 ? 's' : ''}`}
+                                            {`${author.bookCount} book${author.bookCount !== 1 ? 's' : ''}`}
                                         </div>
                                         <span className={`${styles.statusBadge} ${author.is_blocked ? styles.blocked : styles.active}`}>
                                             {author.is_blocked ? 'Blocked' : 'Active'}
