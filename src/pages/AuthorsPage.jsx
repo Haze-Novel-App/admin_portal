@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import {
     Users, User, ArrowLeft, Shield, ShieldOff,
-    BookOpen, FileText, Loader, Mail, Calendar
+    BookOpen, FileText, Loader, Mail, Calendar,
+    UploadCloud, X, ChevronRight
 } from 'lucide-react';
 import styles from '../assets/styles/AuthorsPage.module.css';
 
@@ -14,6 +15,24 @@ export default function AuthorsPage() {
     const [authorBooks, setAuthorBooks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadingBooks, setLoadingBooks] = useState(false);
+
+    // Modal State
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [uploadStep, setUploadStep] = useState(1); // 1: Book Info, 2: Chapters
+    const [newBookId, setNewBookId] = useState(null);
+
+    // Book Form State
+    const [bookTitle, setBookTitle] = useState('');
+    const [bookDescription, setBookDescription] = useState('');
+    const [bookCoverFile, setBookCoverFile] = useState(null);
+    const [bookCoverPreview, setBookCoverPreview] = useState('');
+
+    // Chapter Form State
+    const [chapterTitle, setChapterTitle] = useState('');
+    const [chapterContent, setChapterContent] = useState('');
+
+    // Upload Progress Sub-State
+    const [isUploading, setIsUploading] = useState(false);
 
     useEffect(() => {
         fetchAuthors();
@@ -149,6 +168,121 @@ export default function AuthorsPage() {
         setAuthorBooks([]);
     };
 
+    const openUploadModal = () => {
+        setUploadStep(1);
+        setNewBookId(null);
+        setBookTitle('');
+        setBookDescription('');
+        setBookCoverFile(null);
+        setBookCoverPreview('');
+        setChapterTitle('');
+        setChapterContent('');
+        setIsUploadModalOpen(true);
+    };
+
+    const closeUploadModal = () => {
+        setIsUploadModalOpen(false);
+        if (newBookId && selectedAuthor) {
+            handleSelectAuthor(selectedAuthor); // Refresh books list
+        }
+    };
+
+    const handleCoverChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setBookCoverFile(file);
+            setBookCoverPreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handleCreateBook = async () => {
+        if (!bookTitle || !bookCoverFile) {
+            alert("Title and Cover are required.");
+            return;
+        }
+        setIsUploading(true);
+        try {
+            const timestamp = Date.now();
+            const coverPath = `${selectedAuthor.id}/${timestamp}_${bookCoverFile.name}`;
+
+            // Upload Cover to book_covers bucket
+            const { error: uploadError } = await supabase.storage.from('book_covers').upload(coverPath, bookCoverFile);
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl: coverUrl } } = supabase.storage.from('book_covers').getPublicUrl(coverPath);
+
+            // Insert Book
+            const { data: bookData, error: dbError } = await supabase.from('books').insert([{
+                author_id: selectedAuthor.id,
+                author_name: selectedAuthor.full_name,
+                title: bookTitle,
+                synopsis: bookDescription, // Mapping description from form to synopsis column
+                cover_url: coverUrl,
+                status: 'review', // Sent to review
+                submitted_at: new Date().toISOString() // Set submitted_at so it shows up
+            }]).select().single();
+
+            if (dbError) throw dbError;
+
+            setNewBookId(bookData.id);
+            setUploadStep(2); // Move to chapters step
+        } catch (error) {
+            console.error('Error creating book:', error);
+            alert('Failed to create book: ' + error.message);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleAddChapter = async () => {
+        if (!chapterTitle || !chapterContent) {
+            alert("Chapter Title and Content are required.");
+            return;
+        }
+        setIsUploading(true);
+        try {
+            // Calculate word count
+            const wordCount = chapterContent.trim().split(/\s+/).filter(w => w.length > 0).length;
+
+            // Optional: Upload chapter text as a Blob
+            const contentBlob = new Blob([chapterContent], { type: 'text/plain' });
+            const timestamp = Date.now();
+            const contentPath = `chapters/${selectedAuthor.id}/${newBookId}/${timestamp}.txt`;
+
+            const { error: uploadError } = await supabase.storage.from('chapters').upload(contentPath, contentBlob);
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl: contentUrl } } = supabase.storage.from('chapters').getPublicUrl(contentPath);
+
+            // We need to know what chapter number this is
+            const { data: existingChapters } = await supabase.from('chapters').select('id').eq('book_id', newBookId);
+            const chapterNum = existingChapters ? existingChapters.length + 1 : 1;
+
+            const { error: dbError } = await supabase.from('chapters').insert([{
+                book_id: newBookId,
+                title: chapterTitle,
+                chapter_number: chapterNum,
+                content_url: contentUrl,
+                word_count: wordCount,
+                status: 'review', // Send directly to review
+                submitted_at: new Date().toISOString()
+            }]);
+
+            if (dbError) throw dbError;
+
+            alert(`Chapter ${chapterNum} added successfully!`);
+
+            // Reset chapter form for the next one
+            setChapterTitle('');
+            setChapterContent('');
+        } catch (error) {
+            console.error('Error adding chapter:', error);
+            alert('Failed to add chapter: ' + error.message);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     // Get initials for avatar
     const getInitials = (author) => {
         const name = author.full_name || '?';
@@ -197,10 +331,15 @@ export default function AuthorsPage() {
 
                         {/* Books List */}
                         <div className={styles.booksSection}>
-                            <h3 className={styles.sectionTitle}>
-                                <BookOpen size={18} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle' }} />
-                                Books ({authorBooks.length})
-                            </h3>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                <h3 className={styles.sectionTitle} style={{ margin: 0 }}>
+                                    <BookOpen size={18} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle' }} />
+                                    Books ({authorBooks.length})
+                                </h3>
+                                <button className={styles.uploadBtn} onClick={openUploadModal}>
+                                    <UploadCloud size={16} /> Upload Book
+                                </button>
+                            </div>
 
                             {loadingBooks ? (
                                 <div className={styles.loadingState}>
@@ -306,6 +445,129 @@ export default function AuthorsPage() {
                         </div>
                     )}
                 </>
+            )}
+
+            {/* --- UPLOAD BOOK MODAL --- */}
+            {isUploadModalOpen && (
+                <div className={styles.modalOverlay} onClick={closeUploadModal}>
+                    <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h3 className={styles.modalTitle}>
+                                {uploadStep === 1 ? 'Create New Book' : 'Add Chapters'}
+                            </h3>
+                            <button className={styles.closeBtn} onClick={closeUploadModal}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className={styles.modalBody}>
+                            <div className={styles.stepIndicator}>
+                                <div className={`${styles.step} ${uploadStep >= 1 ? styles.active : ''}`}>
+                                    <div className={styles.stepNumber}>1</div>
+                                    <span>Book Details</span>
+                                </div>
+                                <div className={styles.stepDivider}></div>
+                                <div className={`${styles.step} ${uploadStep >= 2 ? styles.active : ''}`}>
+                                    <div className={styles.stepNumber}>2</div>
+                                    <span>Chapters</span>
+                                </div>
+                            </div>
+
+                            {uploadStep === 1 && (
+                                <div>
+                                    <div className={styles.formGroup}>
+                                        <label>Book Title *</label>
+                                        <input
+                                            type="text"
+                                            value={bookTitle}
+                                            onChange={(e) => setBookTitle(e.target.value)}
+                                            placeholder="Enter book title"
+                                        />
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+                                        <label>Description</label>
+                                        <textarea
+                                            value={bookDescription}
+                                            onChange={(e) => setBookDescription(e.target.value)}
+                                            placeholder="Enter book description"
+                                        />
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+                                        <label>Cover Image *</label>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleCoverChange}
+                                            style={{ display: 'none' }}
+                                            id="cover-upload"
+                                        />
+                                        <label htmlFor="cover-upload" className={`${styles.fileInputArea} ${bookCoverFile ? styles.hasFile : ''}`}>
+                                            {bookCoverPreview ? (
+                                                <img src={bookCoverPreview} alt="Cover Preview" style={{ maxHeight: 200, borderRadius: 8, objectFit: 'contain' }} />
+                                            ) : (
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                    <UploadCloud size={32} color="#A0AEC0" />
+                                                    <div className={styles.fileInputText}>Click to upload cover image</div>
+                                                </div>
+                                            )}
+                                        </label>
+                                    </div>
+                                </div>
+                            )}
+
+                            {uploadStep === 2 && (
+                                <div>
+                                    <div style={{ padding: 16, background: '#F0FFF4', border: '1px solid #C6F6D5', borderRadius: 8, color: '#276749', marginBottom: 24, fontSize: 14 }}>
+                                        Book created successfully! Now you can add chapters to it.
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+                                        <label>Chapter Title *</label>
+                                        <input
+                                            type="text"
+                                            value={chapterTitle}
+                                            onChange={(e) => setChapterTitle(e.target.value)}
+                                            placeholder="e.g. Chapter 1: The Beginning"
+                                        />
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+                                        <label>Chapter Content *</label>
+                                        <textarea
+                                            value={chapterContent}
+                                            onChange={(e) => setChapterContent(e.target.value)}
+                                            placeholder="Paste the chapter text here..."
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className={styles.modalFooter}>
+                            {uploadStep === 1 ? (
+                                <>
+                                    <button className={`${styles.btn} ${styles.btnCancel}`} onClick={closeUploadModal} disabled={isUploading}>
+                                        Cancel
+                                    </button>
+                                    <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleCreateBook} disabled={isUploading || !bookTitle || !bookCoverFile}>
+                                        {isUploading ? <><Loader size={16} className="animate-spin" /> Creating...</> : 'Create & Continue'}
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button className={`${styles.btn} ${styles.btnCancel}`} onClick={closeUploadModal} disabled={isUploading}>
+                                        Done
+                                    </button>
+                                    <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleAddChapter} disabled={isUploading || !chapterTitle || !chapterContent}>
+                                        {isUploading ? <><Loader size={16} className="animate-spin" /> Uploading...</> : 'Upload Chapter'}
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
