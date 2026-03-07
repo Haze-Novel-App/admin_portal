@@ -201,6 +201,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-top: 8px;
 }
 
 .statusPill {
@@ -239,6 +240,20 @@
   border: 1px solid #EDF2F7;
 }
 
+/* --- REVIEW COUNT BADGE --- */
+.reviewCountBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #FFFAF0;
+  color: #C05621;
+  border: 1px solid #FEEBC8;
+}
+
 /* --- BUTTONS --- */
 .actions {
   display: flex;
@@ -268,13 +283,15 @@
 }
 
 .btnAnalyze {
-  background: #EBF8FF;
-  color: #2B6CB0;
-  border: 1px solid #BEE3F8;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .btnAnalyze:hover:not(:disabled) {
-  background: #BEE3F8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
 .btnApprove {
@@ -339,4 +356,238 @@
   justify-content: center;
   padding: 80px 20px;
   color: #888;
+}
+
+/* ================================================
+   CHAPTER REPORT VIEW STYLES
+   ================================================ */
+
+/* --- REPORT PAGE HEADER --- */
+.reportPageHeader {
+  padding: 20px 32px;
+  border-bottom: 1px solid #E2E8F0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+}
+
+.reportBackBtn {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #718096;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 8px;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.reportBackBtn:hover {
+  color: #4A5568;
+}
+
+.headerBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* --- REPORT CARDS --- */
+.reportCard {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  border: 1px solid #E2E8F0;
+}
+
+.reportCardTitle {
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #2D3748;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.reportLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #718096;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.tag {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* --- SENSITIVITY ITEM --- */
+.sensitivityItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.sensitivityItem[data-safe="true"] {
+  border: 1px solid #C6F6D5;
+  background-color: #F0FFF4;
+}
+
+.sensitivityItem[data-safe="false"] {
+  border: 1px solid #FED7D7;
+  background-color: #FFF5F5;
+}
+
+/* --- COMMENT SECTION --- */
+.commentSection {
+  background: white;
+  padding: 28px;
+  border-radius: 12px;
+  border: 2px solid #E2E8F0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.commentSectionTitle {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #2D3748;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.commentTextarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 16px;
+  border: 2px solid #E2E8F0;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+  transition: border-color 0.2s;
+  font-family: inherit;
+  color: #2D3748;
+  background: #FAFBFC;
+  box-sizing: border-box;
+}
+
+.commentTextarea:focus {
+  outline: none;
+  border-color: #667eea;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.commentTextarea::placeholder {
+  color: #A0AEC0;
+}
+
+.decisionButtons {
+  display: flex;
+  gap: 16px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+
+/* --- HISTORY TIMELINE --- */
+.historyTimeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  padding-left: 32px;
+}
+
+.historyTimeline::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #E2E8F0;
+}
+
+.historyCard {
+  display: flex;
+  gap: 16px;
+  position: relative;
+  padding-bottom: 24px;
+}
+
+.historyCard:last-child {
+  padding-bottom: 0;
+}
+
+.timelineDot {
+  position: absolute;
+  left: -32px;
+  top: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1;
+}
+
+.historyCardContent {
+  flex: 1;
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.historyCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.historyCardHeader:hover {
+  background: #F7FAFC;
+}
+
+.historyDecisionBadge {
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.historyComment {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 0 20px 16px 20px;
+  font-size: 13px;
+  color: #4A5568;
+  line-height: 1.5;
 }
