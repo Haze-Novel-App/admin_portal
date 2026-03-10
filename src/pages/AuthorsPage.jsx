@@ -7,9 +7,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import {
     Users, User, ArrowLeft, Shield, ShieldOff,
-    BookOpen, FileText, Loader, Mail, Calendar, Trash2 // Added Trash2 icon
-    BookOpen, FileText, Loader, Mail, Calendar,
-    UploadCloud, X, ChevronRight
+    BookOpen, FileText, Loader, Mail, Calendar, Trash2, UserMinus,
+    UserPlus, Eye, EyeOff, Phone, MapPin, X, Pencil, UploadCloud
 } from 'lucide-react';
 import styles from '../assets/styles/AuthorsPage.module.css';
 
@@ -21,23 +20,41 @@ export default function AuthorsPage() {
     const [loading, setLoading] = useState(true);
     const [loadingBooks, setLoadingBooks] = useState(false);
 
-    // Modal State
-    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-    const [uploadStep, setUploadStep] = useState(1); // 1: Book Info, 2: Chapters
-    const [newBookId, setNewBookId] = useState(null);
+    // Create Author Modal state
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [createLoading, setCreateLoading] = useState(false);
+    const [obscurePassword, setObscurePassword] = useState(true);
+    const [createForm, setCreateForm] = useState({
+        username: '',
+        email: '',
+        password: '',
+        phone: '',
+        location: '',
+    });
+    const [createErrors, setCreateErrors] = useState({});
 
-    // Book Form State
+    // Edit Author Modal state
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editLoading, setEditLoading] = useState(false);
+    const [editForm, setEditForm] = useState({
+        username: '',
+        phone: '',
+        location_name: '',
+    });
+    const [editErrors, setEditErrors] = useState({});
+    const [editableColumns, setEditableColumns] = useState([]);
+
+    // Upload Book Modal state
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [uploadStep, setUploadStep] = useState(1);
+    const [isUploading, setIsUploading] = useState(false);
+    const [newBookId, setNewBookId] = useState(null);
     const [bookTitle, setBookTitle] = useState('');
     const [bookDescription, setBookDescription] = useState('');
     const [bookCoverFile, setBookCoverFile] = useState(null);
     const [bookCoverPreview, setBookCoverPreview] = useState('');
-
-    // Chapter Form State
     const [chapterTitle, setChapterTitle] = useState('');
     const [chapterContent, setChapterContent] = useState('');
-
-    // Upload Progress Sub-State
-    const [isUploading, setIsUploading] = useState(false);
 
     useEffect(() => {
         fetchAuthors();
@@ -157,6 +174,228 @@ export default function AuthorsPage() {
         }
     }
 
+    // --- Create Author ---
+    function validateCreateForm() {
+        const errors = {};
+        if (!createForm.username.trim()) errors.username = 'Username is required';
+        if (!createForm.email.trim()) errors.email = 'Email is required';
+        else if (!createForm.email.includes('@')) errors.email = 'Invalid email address';
+        if (!createForm.password.trim()) errors.password = 'Password is required';
+        else if (createForm.password.length < 6) errors.password = 'Minimum 6 characters';
+        if (createForm.phone && createForm.phone.length !== 10) errors.phone = '10 digits required';
+        return errors;
+    }
+
+    async function handleCreateAuthor(e) {
+        e.preventDefault();
+        const errors = validateCreateForm();
+        setCreateErrors(errors);
+        if (Object.keys(errors).length > 0) return;
+
+        setCreateLoading(true);
+        try {
+            const { data, error } = await supabase.auth.signUp({
+                email: createForm.email.trim(),
+                password: createForm.password.trim(),
+                options: {
+                    data: {
+                        username: createForm.username.trim(),
+                        role: 'author',
+                        phone: createForm.phone.trim() || null,
+                        location_name: createForm.location.trim() || null,
+                    },
+                },
+            });
+
+            if (error) throw error;
+
+            alert(`Author "${createForm.username.trim()}" created successfully!`);
+            setShowCreateModal(false);
+            setCreateForm({ username: '', email: '', password: '', phone: '', location: '' });
+            setCreateErrors({});
+            fetchAuthors(); // Refresh the list
+        } catch (error) {
+            console.error('Error creating author:', error);
+            alert('Failed to create author: ' + error.message);
+        } finally {
+            setCreateLoading(false);
+        }
+    }
+
+    function openCreateModal() {
+        setCreateForm({ username: '', email: '', password: '', phone: '', location: '' });
+        setCreateErrors({});
+        setObscurePassword(true);
+        setShowCreateModal(true);
+    }
+
+    // --- Edit Author ---
+    async function openEditModal(author) {
+        try {
+            // Fetch all profile columns (safe — won't error on missing columns)
+            const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', author.id)
+                .single();
+
+            if (error) throw error;
+
+            setEditForm({
+                username: profile?.username || '',
+                phone: profile?.phone || '',
+                location_name: profile?.location_name || '',
+            });
+            // Store which columns actually exist so we only update those
+            setEditableColumns(Object.keys(profile || {}));
+            setEditErrors({});
+            setShowEditModal(true);
+        } catch (error) {
+            console.error('Error fetching author details:', error);
+            alert('Failed to load author details: ' + error.message);
+        }
+    }
+
+    function validateEditForm() {
+        const errors = {};
+        if (!editForm.username.trim()) errors.username = 'Username is required';
+        if (editForm.phone && editForm.phone.trim() !== '' && editForm.phone.replace(/\D/g, '').length !== 10) {
+            errors.phone = '10 digits required';
+        }
+        return errors;
+    }
+
+    async function handleEditAuthor(e) {
+        e.preventDefault();
+        const errors = validateEditForm();
+        setEditErrors(errors);
+        if (Object.keys(errors).length > 0) return;
+
+        setEditLoading(true);
+        try {
+            // Build update payload with only columns that exist in the table
+            const updateData = { username: editForm.username.trim() };
+            if (editableColumns.includes('phone')) {
+                updateData.phone = editForm.phone.trim() || null;
+            }
+            if (editableColumns.includes('location_name')) {
+                updateData.location_name = editForm.location_name.trim() || null;
+            }
+
+            const { error } = await supabase
+                .from('profiles')
+                .update(updateData)
+                .eq('id', selectedAuthor.id);
+
+            if (error) throw error;
+
+            // Update local state
+            const updatedAuthor = {
+                ...selectedAuthor,
+                full_name: editForm.username.trim(),
+            };
+            setSelectedAuthor(updatedAuthor);
+            setAuthors(prev => prev.map(a =>
+                a.id === selectedAuthor.id
+                    ? { ...a, full_name: editForm.username.trim() }
+                    : a
+            ));
+
+            alert('Author updated successfully!');
+            setShowEditModal(false);
+        } catch (error) {
+            console.error('Error updating author:', error);
+            alert('Failed to update author: ' + error.message);
+        } finally {
+            setEditLoading(false);
+        }
+    }
+
+    // --- Delete Author (cascade all data) ---
+    async function handleDeleteAuthor(author) {
+        const confirmMsg = `⚠️ WARNING: Are you sure you want to PERMANENTLY DELETE "${author.full_name || 'this author'}"?\n\nThis will permanently delete:\n• All their books\n• All chapters\n• All AI review reports\n• All reading progress data\n• All likes\n• Their profile\n\nThis action CANNOT be undone.`;
+
+        if (!window.confirm(confirmMsg)) return;
+
+        const typedName = window.prompt(
+            `To confirm, type the author's name exactly:\n\n${author.full_name}`
+        );
+        if (typedName !== author.full_name) {
+            if (typedName !== null) alert('Name did not match. Deletion cancelled.');
+            return;
+        }
+
+        try {
+            setLoading(true);
+
+            // 1. Get all book IDs by this author
+            const { data: books } = await supabase
+                .from('books')
+                .select('id')
+                .eq('author_id', author.id);
+
+            const bookIds = (books || []).map(b => b.id);
+
+            if (bookIds.length > 0) {
+                // 2. Get all chapter IDs for those books
+                const { data: chapters } = await supabase
+                    .from('chapters')
+                    .select('id')
+                    .in('book_id', bookIds);
+
+                const chapterIds = (chapters || []).map(c => c.id);
+
+                // 3. Delete chapter review history
+                if (chapterIds.length > 0) {
+                    await supabase
+                        .from('chapter_review_history')
+                        .delete()
+                        .in('chapter_id', chapterIds);
+                }
+
+                // 4. Delete reading progress
+                await supabase
+                    .from('reading_progress')
+                    .delete()
+                    .in('book_id', bookIds);
+
+                // 5. Delete likes
+                await supabase
+                    .from('likes')
+                    .delete()
+                    .in('book_id', bookIds);
+
+                // 6. Delete chapters
+                await supabase
+                    .from('chapters')
+                    .delete()
+                    .in('book_id', bookIds);
+
+                // 7. Delete books
+                await supabase
+                    .from('books')
+                    .delete()
+                    .eq('author_id', author.id);
+            }
+
+            // 8. Delete the author's profile
+            await supabase
+                .from('profiles')
+                .delete()
+                .eq('id', author.id);
+
+            alert(`Author "${author.full_name}" and all related data permanently deleted.`);
+            setSelectedAuthor(null);
+            setAuthorBooks([]);
+            setAuthors(prev => prev.filter(a => a.id !== author.id));
+        } catch (error) {
+            console.error('Error deleting author:', error);
+            alert('Failed to delete author: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    }
+
     // --- NEW: Handle Safe Book Deletion ---
     async function handleDeleteBook(book, e) {
         // 1. Prevent the click from navigating to the book review page
@@ -194,11 +433,11 @@ export default function AuthorsPage() {
 
             // 5. Update UI immediately without refreshing
             setAuthorBooks(prev => prev.filter(b => b.id !== book.id));
-            
+
             // 6. Update the total book count on the author's card
-            setAuthors(prev => prev.map(a => 
-                a.id === selectedAuthor.id 
-                    ? { ...a, bookCount: Math.max(0, a.bookCount - 1) } 
+            setAuthors(prev => prev.map(a =>
+                a.id === selectedAuthor.id
+                    ? { ...a, bookCount: Math.max(0, a.bookCount - 1) }
                     : a
             ));
 
@@ -362,6 +601,12 @@ export default function AuthorsPage() {
                             </div>
                         </div>
                         <button
+                            className={styles.editAuthorBtn}
+                            onClick={() => openEditModal(selectedAuthor)}
+                        >
+                            <Pencil size={16} /> Edit Author
+                        </button>
+                        <button
                             className={`${styles.blockBtn} ${selectedAuthor.is_blocked ? styles.unblock : styles.block}`}
                             onClick={() => handleToggleBlock(selectedAuthor)}
                         >
@@ -370,6 +615,12 @@ export default function AuthorsPage() {
                             ) : (
                                 <><Shield size={16} /> Block Author</>
                             )}
+                        </button>
+                        <button
+                            className={styles.deleteAuthorBtn}
+                            onClick={() => handleDeleteAuthor(selectedAuthor)}
+                        >
+                            <UserMinus size={16} /> Delete Author
                         </button>
                     </div>
 
@@ -396,13 +647,13 @@ export default function AuthorsPage() {
                             ) : (
                                 <div className={styles.booksGrid}>
                                     {authorBooks.map(book => (
-                                        <div 
-                                            key={book.id} 
-                                            className={styles.bookCard} 
-                                            onClick={() => navigate('/dashboard/books-review', { state: { selectedBook: book } })} 
+                                        <div
+                                            key={book.id}
+                                            className={styles.bookCard}
+                                            onClick={() => navigate('/dashboard/books-review', { state: { selectedBook: book } })}
                                             style={{ cursor: 'pointer', position: 'relative' }} // Added position relative
                                         >
-                                            
+
                                             {/* --- NEW: Delete Book Button --- */}
                                             <button
                                                 onClick={(e) => handleDeleteBook(book, e)}
@@ -485,6 +736,9 @@ export default function AuthorsPage() {
                         <h2 className={styles.pageTitle}>
                             Authors <span className={styles.authorCount}>({authors.length})</span>
                         </h2>
+                        <button className={styles.createAuthorBtn} onClick={openCreateModal}>
+                            <UserPlus size={16} /> Create Author
+                        </button>
                     </div>
 
                     {loading ? (
@@ -524,125 +778,169 @@ export default function AuthorsPage() {
                 </>
             )}
 
-            {/* --- UPLOAD BOOK MODAL --- */}
-            {isUploadModalOpen && (
-                <div className={styles.modalOverlay} onClick={closeUploadModal}>
-                    <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-                        <div className={styles.modalHeader}>
-                            <h3 className={styles.modalTitle}>
-                                {uploadStep === 1 ? 'Create New Book' : 'Add Chapters'}
-                            </h3>
-                            <button className={styles.closeBtn} onClick={closeUploadModal}>
-                                <X size={20} />
-                            </button>
+            {/* Create Author Modal */}
+            {showCreateModal && (
+                <div className={styles.modalOverlay} onClick={() => setShowCreateModal(false)}>
+                    <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <button className={styles.modalCloseBtn} onClick={() => setShowCreateModal(false)}>
+                            <X size={20} />
+                        </button>
+                        <div className={styles.modalLogo}>
+                            <BookOpen size={32} color="#7C3AED" />
+                            <span className={styles.modalLogoText}>Shelfie</span>
                         </div>
-
-                        <div className={styles.modalBody}>
-                            <div className={styles.stepIndicator}>
-                                <div className={`${styles.step} ${uploadStep >= 1 ? styles.active : ''}`}>
-                                    <div className={styles.stepNumber}>1</div>
-                                    <span>Book Details</span>
+                        <h2 className={styles.modalTitle}>Create Author Account</h2>
+                        <form onSubmit={handleCreateAuthor} className={styles.modalForm}>
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>Username</label>
+                                <input
+                                    type="text"
+                                    className={`${styles.formInput} ${createErrors.username ? styles.inputError : ''}`}
+                                    placeholder="Username"
+                                    value={createForm.username}
+                                    onChange={(e) => setCreateForm(f => ({ ...f, username: e.target.value }))}
+                                />
+                                {createErrors.username && <span className={styles.errorText}>{createErrors.username}</span>}
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>Email</label>
+                                <input
+                                    type="email"
+                                    className={`${styles.formInput} ${createErrors.email ? styles.inputError : ''}`}
+                                    placeholder="Email"
+                                    value={createForm.email}
+                                    onChange={(e) => setCreateForm(f => ({ ...f, email: e.target.value }))}
+                                />
+                                {createErrors.email && <span className={styles.errorText}>{createErrors.email}</span>}
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>Password</label>
+                                <div className={styles.passwordWrapper}>
+                                    <input
+                                        type={obscurePassword ? 'password' : 'text'}
+                                        className={`${styles.formInput} ${createErrors.password ? styles.inputError : ''}`}
+                                        placeholder="Password"
+                                        value={createForm.password}
+                                        onChange={(e) => setCreateForm(f => ({ ...f, password: e.target.value }))}
+                                    />
+                                    <button
+                                        type="button"
+                                        className={styles.passwordToggle}
+                                        onClick={() => setObscurePassword(!obscurePassword)}
+                                    >
+                                        {obscurePassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
                                 </div>
-                                <div className={styles.stepDivider}></div>
-                                <div className={`${styles.step} ${uploadStep >= 2 ? styles.active : ''}`}>
-                                    <div className={styles.stepNumber}>2</div>
-                                    <span>Chapters</span>
+                                {createErrors.password && <span className={styles.errorText}>{createErrors.password}</span>}
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>Phone Number (Optional)</label>
+                                <input
+                                    type="tel"
+                                    className={`${styles.formInput} ${createErrors.phone ? styles.inputError : ''}`}
+                                    placeholder="Phone Number (Optional)"
+                                    value={createForm.phone}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                        setCreateForm(f => ({ ...f, phone: val }));
+                                    }}
+                                />
+                                {createErrors.phone && <span className={styles.errorText}>{createErrors.phone}</span>}
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>Location (Optional)</label>
+                                <div className={styles.locationInput}>
+                                    <MapPin size={16} className={styles.locationIcon} />
+                                    <input
+                                        type="text"
+                                        className={styles.formInput}
+                                        placeholder="Add Location (Optional)"
+                                        value={createForm.location}
+                                        onChange={(e) => setCreateForm(f => ({ ...f, location: e.target.value }))}
+                                    />
                                 </div>
                             </div>
+                            <button
+                                type="submit"
+                                className={styles.submitBtn}
+                                disabled={createLoading}
+                            >
+                                {createLoading ? (
+                                    <><Loader size={16} className="animate-spin" /> Creating...</>
+                                ) : (
+                                    'Sign up'
+                                )}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
 
-                            {uploadStep === 1 && (
-                                <div>
-                                    <div className={styles.formGroup}>
-                                        <label>Book Title *</label>
-                                        <input
-                                            type="text"
-                                            value={bookTitle}
-                                            onChange={(e) => setBookTitle(e.target.value)}
-                                            placeholder="Enter book title"
-                                        />
-                                    </div>
-
-                                    <div className={styles.formGroup}>
-                                        <label>Description</label>
-                                        <textarea
-                                            value={bookDescription}
-                                            onChange={(e) => setBookDescription(e.target.value)}
-                                            placeholder="Enter book description"
-                                        />
-                                    </div>
-
-                                    <div className={styles.formGroup}>
-                                        <label>Cover Image *</label>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleCoverChange}
-                                            style={{ display: 'none' }}
-                                            id="cover-upload"
-                                        />
-                                        <label htmlFor="cover-upload" className={`${styles.fileInputArea} ${bookCoverFile ? styles.hasFile : ''}`}>
-                                            {bookCoverPreview ? (
-                                                <img src={bookCoverPreview} alt="Cover Preview" style={{ maxHeight: 200, borderRadius: 8, objectFit: 'contain' }} />
-                                            ) : (
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                                    <UploadCloud size={32} color="#A0AEC0" />
-                                                    <div className={styles.fileInputText}>Click to upload cover image</div>
-                                                </div>
-                                            )}
-                                        </label>
-                                    </div>
-                                </div>
-                            )}
-
-                            {uploadStep === 2 && (
-                                <div>
-                                    <div style={{ padding: 16, background: '#F0FFF4', border: '1px solid #C6F6D5', borderRadius: 8, color: '#276749', marginBottom: 24, fontSize: 14 }}>
-                                        Book created successfully! Now you can add chapters to it.
-                                    </div>
-
-                                    <div className={styles.formGroup}>
-                                        <label>Chapter Title *</label>
-                                        <input
-                                            type="text"
-                                            value={chapterTitle}
-                                            onChange={(e) => setChapterTitle(e.target.value)}
-                                            placeholder="e.g. Chapter 1: The Beginning"
-                                        />
-                                    </div>
-
-                                    <div className={styles.formGroup}>
-                                        <label>Chapter Content *</label>
-                                        <textarea
-                                            value={chapterContent}
-                                            onChange={(e) => setChapterContent(e.target.value)}
-                                            placeholder="Paste the chapter text here..."
-                                        />
-                                    </div>
-                                </div>
-                            )}
+            {/* Edit Author Modal */}
+            {showEditModal && (
+                <div className={styles.modalOverlay} onClick={() => setShowEditModal(false)}>
+                    <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <button className={styles.modalCloseBtn} onClick={() => setShowEditModal(false)}>
+                            <X size={20} />
+                        </button>
+                        <div className={styles.modalLogo}>
+                            <Pencil size={28} color="#7C3AED" />
+                            <span className={styles.modalLogoText}>Edit Author</span>
                         </div>
-
-                        <div className={styles.modalFooter}>
-                            {uploadStep === 1 ? (
-                                <>
-                                    <button className={`${styles.btn} ${styles.btnCancel}`} onClick={closeUploadModal} disabled={isUploading}>
-                                        Cancel
-                                    </button>
-                                    <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleCreateBook} disabled={isUploading || !bookTitle || !bookCoverFile}>
-                                        {isUploading ? <><Loader size={16} className="animate-spin" /> Creating...</> : 'Create & Continue'}
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    <button className={`${styles.btn} ${styles.btnCancel}`} onClick={closeUploadModal} disabled={isUploading}>
-                                        Done
-                                    </button>
-                                    <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleAddChapter} disabled={isUploading || !chapterTitle || !chapterContent}>
-                                        {isUploading ? <><Loader size={16} className="animate-spin" /> Uploading...</> : 'Upload Chapter'}
-                                    </button>
-                                </>
-                            )}
-                        </div>
+                        <h2 className={styles.modalTitle}>
+                            Update {selectedAuthor?.full_name || 'Author'}'s Info
+                        </h2>
+                        <form onSubmit={handleEditAuthor} className={styles.modalForm}>
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>Username</label>
+                                <input
+                                    type="text"
+                                    className={`${styles.formInput} ${editErrors.username ? styles.inputError : ''}`}
+                                    placeholder="Username"
+                                    value={editForm.username}
+                                    onChange={(e) => setEditForm(f => ({ ...f, username: e.target.value }))}
+                                />
+                                {editErrors.username && <span className={styles.errorText}>{editErrors.username}</span>}
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>Phone Number</label>
+                                <input
+                                    type="tel"
+                                    className={`${styles.formInput} ${editErrors.phone ? styles.inputError : ''}`}
+                                    placeholder="Phone Number (Optional)"
+                                    value={editForm.phone}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                        setEditForm(f => ({ ...f, phone: val }));
+                                    }}
+                                />
+                                {editErrors.phone && <span className={styles.errorText}>{editErrors.phone}</span>}
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>Location</label>
+                                <div className={styles.locationInput}>
+                                    <MapPin size={16} className={styles.locationIcon} />
+                                    <input
+                                        type="text"
+                                        className={styles.formInput}
+                                        placeholder="Location (Optional)"
+                                        value={editForm.location_name}
+                                        onChange={(e) => setEditForm(f => ({ ...f, location_name: e.target.value }))}
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                type="submit"
+                                className={styles.submitBtn}
+                                disabled={editLoading}
+                            >
+                                {editLoading ? (
+                                    <><Loader size={16} className="animate-spin" /> Saving...</>
+                                ) : (
+                                    'Save Changes'
+                                )}
+                            </button>
+                        </form>
                     </div>
                 </div>
             )}
