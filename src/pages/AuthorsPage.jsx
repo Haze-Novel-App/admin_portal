@@ -1,8 +1,13 @@
+
+
+
+
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import {
     Users, User, ArrowLeft, Shield, ShieldOff,
+    BookOpen, FileText, Loader, Mail, Calendar, Trash2 // Added Trash2 icon
     BookOpen, FileText, Loader, Mail, Calendar,
     UploadCloud, X, ChevronRight
 } from 'lucide-react';
@@ -40,8 +45,6 @@ export default function AuthorsPage() {
 
     async function fetchAuthors() {
         try {
-            // Fetch authors from profiles table directly (not from books)
-            // This ensures blocked authors still appear in the admin list
             const { data: profiles, error: profilesError } = await supabase
                 .from('profiles')
                 .select('id, username, updated_at, is_blocked')
@@ -50,9 +53,6 @@ export default function AuthorsPage() {
 
             if (profilesError) throw profilesError;
 
-            // Get book counts for each author using a separate query
-            // Note: books of blocked authors may be hidden by RLS,
-            // so we count separately and don't rely on books for the author list
             const authorIds = (profiles || []).map(p => p.id);
             let bookCountMap = new Map();
 
@@ -91,7 +91,6 @@ export default function AuthorsPage() {
         setLoadingBooks(true);
 
         try {
-            // Fetch books - try by author_id first, fall back to author_name
             let query = supabase
                 .from('books')
                 .select('*, chapters(id, status)')
@@ -107,7 +106,6 @@ export default function AuthorsPage() {
 
             if (error) throw error;
 
-            // Calculate chapter stats for each book
             const booksWithStats = (books || []).map(book => {
                 const chapters = book.chapters || [];
                 return {
@@ -130,8 +128,6 @@ export default function AuthorsPage() {
 
     async function handleToggleBlock(author) {
         const isCurrentlyBlocked = author.is_blocked;
-        const action = isCurrentlyBlocked ? 'unblock' : 'block';
-
         const confirmMsg = isCurrentlyBlocked
             ? `Are you sure you want to unblock "${author.full_name || 'this author'}"?\n\nTheir books will be visible to readers again and they will be able to log in.`
             : `Are you sure you want to block "${author.full_name || 'this author'}"?\n\nThis will:\n• Hide all their books from readers\n• Prevent them from logging in\n• They will need to be unblocked to regain access`;
@@ -139,7 +135,6 @@ export default function AuthorsPage() {
         if (!confirm(confirmMsg)) return;
 
         try {
-            // Use RPC function with SECURITY DEFINER to bypass RLS
             const { error } = await supabase
                 .rpc('toggle_author_block', {
                     target_author_id: author.id,
@@ -148,18 +143,71 @@ export default function AuthorsPage() {
 
             if (error) throw error;
 
-            // Update local state
             const updated = { ...author, is_blocked: !isCurrentlyBlocked };
             setSelectedAuthor(updated);
             setAuthors(prev => prev.map(a => a.id === author.id ? updated : a));
 
             const successMsg = isCurrentlyBlocked
-                ? `${author.full_name || 'Author'} has been unblocked. Their books are now visible and they can log in again.`
-                : `${author.full_name || 'Author'} has been blocked. Their books are now hidden from readers and they cannot log in.`;
+                ? `${author.full_name || 'Author'} has been unblocked.`
+                : `${author.full_name || 'Author'} has been blocked.`;
             alert(successMsg);
         } catch (error) {
             console.error('Error toggling block:', error);
             alert('Failed to update: ' + error.message);
+        }
+    }
+
+    // --- NEW: Handle Safe Book Deletion ---
+    async function handleDeleteBook(book, e) {
+        // 1. Prevent the click from navigating to the book review page
+        e.stopPropagation();
+
+        // 2. Initial Warning
+        const confirmMsg = `WARNING: Are you sure you want to delete "${book.title}"?\n\nThis will permanently delete the book, ALL its chapters, and ALL associated AI reports. This action CANNOT be undone.`;
+        if (!window.confirm(confirmMsg)) return;
+
+        // 3. Double Confirmation (Security best practice for destructive actions)
+        const typedTitle = window.prompt(`To confirm this deletion, please type the exact title of the book:\n\n${book.title}`);
+        if (typedTitle !== book.title) {
+            if (typedTitle !== null) alert("The title did not match. Deletion cancelled to keep data safe.");
+            return;
+        }
+
+        try {
+            setLoadingBooks(true);
+
+            // 4. Delete the book from Supabase
+            // Note: This relies entirely on your database having ON DELETE CASCADE set up
+            // for chapters and AI reports linked to this book's ID.
+            const { error } = await supabase
+                .from('books')
+                .delete()
+                .eq('id', book.id);
+
+            if (error) {
+                // If it fails due to foreign key constraints, it protects the data safely
+                if (error.code === '23503') {
+                    throw new Error("Cannot delete book because related chapters/reports exist and 'Cascade Delete' is not enabled in your database settings.");
+                }
+                throw error;
+            }
+
+            // 5. Update UI immediately without refreshing
+            setAuthorBooks(prev => prev.filter(b => b.id !== book.id));
+            
+            // 6. Update the total book count on the author's card
+            setAuthors(prev => prev.map(a => 
+                a.id === selectedAuthor.id 
+                    ? { ...a, bookCount: Math.max(0, a.bookCount - 1) } 
+                    : a
+            ));
+
+            alert('Book and all related data successfully deleted.');
+        } catch (error) {
+            console.error('Error deleting book:', error);
+            alert('Deletion failed: ' + error.message);
+        } finally {
+            setLoadingBooks(false);
         }
     }
 
@@ -291,9 +339,7 @@ export default function AuthorsPage() {
 
     return (
         <div className={styles.container}>
-
             {selectedAuthor ? (
-                // === AUTHOR DETAIL VIEW ===
                 <>
                     <div className={styles.pageHeader} style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                         <button className={styles.backBtn} onClick={handleBack}>
@@ -328,8 +374,6 @@ export default function AuthorsPage() {
                     </div>
 
                     <div className={styles.detailPanel}>
-
-                        {/* Books List */}
                         <div className={styles.booksSection}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                                 <h3 className={styles.sectionTitle} style={{ margin: 0 }}>
@@ -352,7 +396,41 @@ export default function AuthorsPage() {
                             ) : (
                                 <div className={styles.booksGrid}>
                                     {authorBooks.map(book => (
-                                        <div key={book.id} className={styles.bookCard} onClick={() => navigate('/dashboard/books-review', { state: { selectedBook: book } })} style={{ cursor: 'pointer' }}>
+                                        <div 
+                                            key={book.id} 
+                                            className={styles.bookCard} 
+                                            onClick={() => navigate('/dashboard/books-review', { state: { selectedBook: book } })} 
+                                            style={{ cursor: 'pointer', position: 'relative' }} // Added position relative
+                                        >
+                                            
+                                            {/* --- NEW: Delete Book Button --- */}
+                                            <button
+                                                onClick={(e) => handleDeleteBook(book, e)}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '12px',
+                                                    right: '12px',
+                                                    backgroundColor: '#ef4444', // Red-500
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '50%',
+                                                    width: '32px',
+                                                    height: '32px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: 'pointer',
+                                                    zIndex: 10, // Ensure it sits above the card click layer
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                                                    transition: 'transform 0.2s ease, background-color 0.2s ease'
+                                                }}
+                                                title="Permanently Delete Book"
+                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dc2626'} // Red-600
+                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+
                                             <div className={styles.coverContainer}>
                                                 {book.cover_url ? (
                                                     <img
@@ -402,7 +480,6 @@ export default function AuthorsPage() {
                     </div>
                 </>
             ) : (
-                // === AUTHORS GRID VIEW ===
                 <>
                     <div className={styles.pageHeader}>
                         <h2 className={styles.pageTitle}>

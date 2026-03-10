@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   ArrowLeft, Calendar, CheckCircle, AlertTriangle,
   BookOpen, Fingerprint, Activity, Check, X,
-  FileText, Clock, History, ChevronDown, ChevronUp,
+  FileText, Clock, History, ChevronDown, ChevronUp, Loader,
   MessageSquare, Send
 } from 'lucide-react';
 import styles from '../../assets/styles/ReviewDashboard.module.css';
