@@ -399,3 +399,255 @@
     color: #A0AEC0;
     font-size: 14px;
 }
+
+/* --- MODAL --- */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.modalContent {
+    background: #FFFFFF;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+}
+
+.modalHeader {
+    padding: 24px 32px;
+    border-bottom: 1px solid #EEF2F6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modalTitle {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #1A202C;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    color: #A0AEC0;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.closeBtn:hover {
+    background: #F7FAFC;
+    color: #4A5568;
+}
+
+.modalBody {
+    padding: 32px;
+    flex: 1;
+}
+
+.formGroup {
+    margin-bottom: 24px;
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #4A5568;
+}
+
+.formGroup input[type="text"],
+.formGroup textarea,
+.formGroup input[type="number"],
+.formGroup select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    font-size: 15px;
+    color: #1A202C;
+    background: #FAFBFC;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.formGroup textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.formGroup input:focus,
+.formGroup textarea:focus,
+.formGroup select:focus {
+    outline: none;
+    border-color: #8B5CF6;
+    background: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.fileInputArea {
+    border: 2px dashed #E2E8F0;
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #FAFBFC;
+}
+
+.fileInputArea:hover {
+    border-color: #A78BFA;
+    background: #F5F3FF;
+}
+
+.fileInputText {
+    margin-top: 12px;
+    color: #718096;
+    font-size: 14px;
+}
+
+.fileInputArea.hasFile {
+    border-style: solid;
+    border-color: #8B5CF6;
+    background: #F5F3FF;
+}
+
+.modalFooter {
+    padding: 24px 32px;
+    border-top: 1px solid #EEF2F6;
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    background: #FAFBFC;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.btnCancel {
+    background: white;
+    border: 1px solid #E2E8F0;
+    color: #4A5568;
+}
+
+.btnCancel:hover {
+    background: #F7FAFC;
+}
+
+.btnPrimary {
+    background: #8B5CF6;
+    border: 1px solid #8B5CF6;
+    color: white;
+}
+
+.btnPrimary:hover {
+    background: #7C3AED;
+    border-color: #7C3AED;
+}
+
+.btnPrimary:disabled {
+    background: #C4B5FD;
+    border-color: #C4B5FD;
+    cursor: not-allowed;
+}
+
+.uploadBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #8B5CF6;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-left: 16px;
+}
+
+.uploadBtn:hover {
+    background: #7C3AED;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+}
+
+.stepIndicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 32px;
+    gap: 16px;
+}
+
+.step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #A0AEC0;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.step.active {
+    color: #8B5CF6;
+}
+
+.stepNumber {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #EDF2F7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.step.active .stepNumber {
+    background: #8B5CF6;
+    color: white;
+}
+
+.stepDivider {
+    height: 2px;
+    width: 40px;
+    background: #EDF2F7;
+}
+
+.step.active+.stepDivider {
+    background: #8B5CF6;
+}

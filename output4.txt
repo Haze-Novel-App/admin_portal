@@ -1,0 +1,72 @@
+--- BOOKS ---
+[
+  {
+    "id": "75a3f3fa-3320-426a-af33-354d44b6cd55",
+    "created_at": "2026-03-07T10:43:25.47307+00:00",
+    "author_id": "3a6a1342-ec8d-4028-8007-68581c543c52",
+    "title": "The Masquerade",
+    "author_name": "Goldenhaze",
+    "analysis_data": null,
+    "genre": "Romance",
+    "word_count": null,
+    "sentiment_score": null,
+    "book_type": "Novel",
+    "cover_url": "https://qmnwjusineizolrpmcxq.supabase.co/storage/v1/object/public/book_covers/3a6a1342-ec8d-4028-8007-68581c543c52/1772880204336.jpeg",
+    "release_date": null,
+    "series": "",
+    "synopsis": "A story of a young woman",
+    "like_count": 0,
+    "status": "draft",
+    "submitted_at": null
+  },
+  {
+    "id": "9cba602f-047a-4695-ae1c-c948b058830a",
+    "created_at": "2026-02-02T16:35:00.94888+00:00",
+    "author_id": "ddad6b91-b333-4560-98ec-b878df2a267f",
+    "title": "test",
+    "author_name": "abc",
+    "analysis_data": null,
+    "genre": "Sports",
+    "word_count": null,
+    "sentiment_score": null,
+    "book_type": "Manhwa",
+    "cover_url": "https://qmnwjusineizolrpmcxq.supabase.co/storage/v1/object/public/book_covers/ddad6b91-b333-4560-98ec-b878df2a267f/1770050100196.png",
+    "release_date": "2026-02-19T00:00:00+00:00",
+    "series": "abc",
+    "synopsis": "test",
+    "like_count": 0,
+    "status": "draft",
+    "submitted_at": null
+  }
+]
+--- CHAPTERS ---
+[
+  {
+    "id": "2c49cd94-64cc-4b57-8169-c206e75827d5",
+    "book_id": "75a3f3fa-3320-426a-af33-354d44b6cd55",
+    "chapter_number": 1,
+    "title": "The Prologue",
+    "content": null,
+    "price_in_tokens": 10,
+    "created_at": "2026-03-07T10:43:38.270717+00:00",
+    "word_count": 0,
+    "content_url": "https://qmnwjusineizolrpmcxq.supabase.co/storage/v1/object/public/chapters/chapters/3a6a1342-ec8d-4028-8007-68581c543c52/75a3f3fa-3320-426a-af33-354d44b6cd55/1772880217798.txt",
+    "price": 25,
+    "status": "draft",
+    "admin_feedback": null
+  },
+  {
+    "id": "36ac7718-95d9-416d-96e0-aa336b7ca01c",
+    "book_id": "598a7c5d-14ba-4919-a11c-8d26a02e3a3d",
+    "chapter_number": 1,
+    "title": "the bigging",
+    "content": null,
+    "price_in_tokens": 10,
+    "created_at": "2026-01-30T18:01:52.351418+00:00",
+    "word_count": 602,
+    "content_url": "https://qmnwjusineizolrpmcxq.supabase.co/storage/v1/object/public/chapters/chapters/ddad6b91-b333-4560-98ec-b878df2a267f/598a7c5d-14ba-4919-a11c-8d26a02e3a3d/1769796110983.txt",
+    "price": 25,
+    "status": "approved",
+    "admin_feedback": null
+  }
+]

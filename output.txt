@@ -1,0 +1,15 @@
+COLUMNS: id, book_id, chapter_number, title, content, price_in_tokens, created_at, word_count, content_url, price, status, admin_feedback
+{
+  "id": "2c49cd94-64cc-4b57-8169-c206e75827d5",
+  "book_id": "75a3f3fa-3320-426a-af33-354d44b6cd55",
+  "chapter_number": 1,
+  "title": "The Prologue",
+  "content": null,
+  "price_in_tokens": 10,
+  "created_at": "2026-03-07T10:43:38.270717+00:00",
+  "word_count": 0,
+  "content_url": "https://qmnwjusineizolrpmcxq.supabase.co/storage/v1/object/public/chapters/chapters/3a6a1342-ec8d-4028-8007-68581c543c52/75a3f3fa-3320-426a-af33-354d44b6cd55/1772880217798.txt",
+  "price": 25,
+  "status": "draft",
+  "admin_feedback": null
+}
