@@ -54,6 +54,7 @@ import Settings from './pages/Settings';
 import UploadShorts from './pages/UploadShorts';
 import ReviewDashboard from './pages/review/ReviewDashboard';
 import AuthorsPage from './pages/AuthorsPage';
+import ResetPassword from './pages/ResetPassword';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -84,6 +85,7 @@ function App() {
           path="/"
           element={session ? <Navigate to="/dashboard" replace /> : <Login />}
         />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* PROTECTED ROUTES: If no session, any /dashboard access redirects to "/" (Login) */}
         <Route

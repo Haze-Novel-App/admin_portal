@@ -67,6 +67,15 @@ export default function Login() {
             {loading ? 'Verifying...' : 'Enter Portal'}
           </button>
         </form>
+        <div className={styles.linkRow}>
+          <button
+            type="button"
+            className={styles.linkButton}
+            onClick={() => navigate('/reset-password')}
+          >
+            Forgot password?
+          </button>
+        </div>
       </div>
     </div>
   );
