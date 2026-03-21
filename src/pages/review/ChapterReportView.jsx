@@ -200,6 +200,18 @@ export default function ChapterReportView({ history, chapter, onBack, onDecision
             <ReportCards report={latestReport} />
           </div>
 
+          {/* AUTHOR COMMENT */}
+          {chapter?.author_comment && chapter.author_comment.trim() !== '' && (
+            <section className={styles.commentSection}>
+              <h3 className={styles.commentSectionTitle}>
+                <MessageSquare size={20} color="#4A5568" /> Author Comment
+              </h3>
+              <div style={{ background: '#F7FAFC', padding: 16, borderRadius: 8, color: '#4A5568', lineHeight: 1.6, fontSize: 14 }}>
+                {chapter.author_comment}
+              </div>
+            </section>
+          )}
+
           {/* ADMIN COMMENT & DECISION SECTION */}
           {!latestReport.decision && chapter.status === 'review' && (
             <section className={styles.commentSection}>

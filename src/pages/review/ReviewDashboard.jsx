@@ -228,7 +228,10 @@ export default function ReviewDashboard() {
       // Update the chapter status
       const { error: chapterError } = await supabase
         .from('chapters')
-        .update({ status: decision })
+        .update({
+          status: decision,
+          admin_feedback: comment?.trim() || null,
+        })
         .eq('id', chapterId);
 
       if (chapterError) throw chapterError;
