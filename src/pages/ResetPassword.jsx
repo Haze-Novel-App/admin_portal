@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import styles from './ResetPassword.module.css';
@@ -10,11 +10,14 @@ export default function ResetPassword() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const code = useMemo(() => searchParams.get('code'), [searchParams]);
+  const emailParam = useMemo(() => searchParams.get('email') || '', [searchParams]);
+  const autoSend = useMemo(() => searchParams.get('auto') === '1', [searchParams]);
+  const autoSentRef = useRef(false);
 
   const [mode, setMode] = useState(code ? 'set' : 'request');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(emailParam);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
 
@@ -28,7 +31,12 @@ export default function ResetPassword() {
         if (error) throw error;
         setMode('set');
       } catch (err) {
-        setMessage(err.message || 'Unable to open reset link.');
+        const msg = err?.message || 'Unable to open reset link.';
+        if (msg.toLowerCase().includes('code verifier')) {
+          setMessage('This reset link was opened in a different browser or device. Please request a new link below.');
+        } else {
+          setMessage(msg);
+        }
         setMode('request');
       } finally {
         setLoading(false);
@@ -37,8 +45,14 @@ export default function ResetPassword() {
     exchange();
   }, [code]);
 
+  useEffect(() => {
+    if (!emailParam || !autoSend || autoSentRef.current) return;
+    autoSentRef.current = true;
+    handleRequest();
+  }, [emailParam, autoSend]);
+
   const handleRequest = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setLoading(true);
     setMessage('');
     try {
