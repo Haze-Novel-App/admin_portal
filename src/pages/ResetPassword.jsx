@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import styles from './ResetPassword.module.css';
@@ -10,30 +10,76 @@ export default function ResetPassword() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const code = useMemo(() => searchParams.get('code'), [searchParams]);
-  const emailParam = useMemo(() => searchParams.get('email') || '', [searchParams]);
-  const autoSend = useMemo(() => searchParams.get('auto') === '1', [searchParams]);
-  const autoSentRef = useRef(false);
+  const errorParam = useMemo(() => searchParams.get('error') || '', [searchParams]);
+  const errorDescParam = useMemo(() => searchParams.get('error_description') || '', [searchParams]);
 
-  const [mode, setMode] = useState(code ? 'set' : 'request');
+  const [mode, setMode] = useState('request');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [email, setEmail] = useState(emailParam);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
 
   useEffect(() => {
-    if (!code) return;
-    const exchange = async () => {
+    const { data: authSub } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
+        setMode('set');
+        setMessage('');
+      }
+    });
+
+    return () => authSub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const hash = window.location.hash.replace(/^#/, '');
+    const hashParams = new URLSearchParams(hash);
+    const hashError = hashParams.get('error') || '';
+    const hashErrorDescription = hashParams.get('error_description') || '';
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
+
+    const processLink = async () => {
       setLoading(true);
       setMessage('');
       try {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) throw error;
-        setMode('set');
+        if (hashError || errorParam) {
+          const rawMsg = decodeURIComponent(hashErrorDescription || errorDescParam || hashError || errorParam);
+          if (rawMsg.toLowerCase().includes('expired') || rawMsg.toLowerCase().includes('otp')) {
+            setMessage('This reset link has expired. Please request a new reset link.');
+          } else {
+            setMessage(rawMsg);
+          }
+          setMode('request');
+          return;
+        }
+
+        if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) throw error;
+          setMode('set');
+          window.history.replaceState({}, '', window.location.pathname);
+          return;
+        }
+
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+          setMode('set');
+          window.history.replaceState({}, '', window.location.pathname);
+          return;
+        }
+
+        setMode('request');
       } catch (err) {
         const msg = err?.message || 'Unable to open reset link.';
         if (msg.toLowerCase().includes('code verifier')) {
-          setMessage('This reset link was opened in a different browser or device. Please request a new link below.');
+          setMessage('This link was opened in a different browser session. Please request a new reset link.');
+        } else if (msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('otp')) {
+          setMessage('This reset link has expired. Please request a new reset link.');
         } else {
           setMessage(msg);
         }
@@ -42,14 +88,8 @@ export default function ResetPassword() {
         setLoading(false);
       }
     };
-    exchange();
-  }, [code]);
-
-  useEffect(() => {
-    if (!emailParam || !autoSend || autoSentRef.current) return;
-    autoSentRef.current = true;
-    handleRequest();
-  }, [emailParam, autoSend]);
+    processLink();
+  }, [code, errorParam, errorDescParam]);
 
   const handleRequest = async (e) => {
     if (e) e.preventDefault();
