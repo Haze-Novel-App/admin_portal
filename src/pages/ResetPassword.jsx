@@ -10,6 +10,8 @@ export default function ResetPassword() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const code = useMemo(() => searchParams.get('code'), [searchParams]);
+  const tokenHash = useMemo(() => searchParams.get('token_hash'), [searchParams]);
+  const type = useMemo(() => searchParams.get('type') || 'recovery', [searchParams]);
   const errorParam = useMemo(() => searchParams.get('error') || '', [searchParams]);
   const errorDescParam = useMemo(() => searchParams.get('error_description') || '', [searchParams]);
 
@@ -65,6 +67,18 @@ export default function ResetPassword() {
           return;
         }
 
+        // Preferred flow for web password recovery: token_hash + type=recovery
+        if (tokenHash && type === 'recovery') {
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: 'recovery',
+          });
+          if (error) throw error;
+          setMode('set');
+          window.history.replaceState({}, '', window.location.pathname);
+          return;
+        }
+
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
@@ -77,7 +91,7 @@ export default function ResetPassword() {
       } catch (err) {
         const msg = err?.message || 'Unable to open reset link.';
         if (msg.toLowerCase().includes('code verifier')) {
-          setMessage('This link was opened in a different browser session. Please request a new reset link.');
+          setMessage('Reset link format is outdated for web recovery. Please use the latest email link.');
         } else if (msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('otp')) {
           setMessage('This reset link has expired. Please request a new reset link.');
         } else {
@@ -89,7 +103,7 @@ export default function ResetPassword() {
       }
     };
     processLink();
-  }, [code, errorParam, errorDescParam]);
+  }, [code, tokenHash, type, errorParam, errorDescParam]);
 
   const handleRequest = async (e) => {
     if (e) e.preventDefault();
@@ -150,7 +164,7 @@ export default function ResetPassword() {
               <Mail className={styles.inputIcon} size={20} />
               <input
                 type="email"
-                placeholder="Admin Email"
+                placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className={styles.input}
