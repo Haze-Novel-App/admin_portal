@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import styles from './ResetPassword.module.css';
-import { Mail, Lock, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ShieldCheck } from 'lucide-react';
 
 const REDIRECT_URL = 'https://admin.shelfiebooks.in/reset-password';
 
@@ -21,6 +21,8 @@ export default function ResetPassword() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     const { data: authSub } = supabase.auth.onAuthStateChange((event, session) => {
@@ -182,24 +184,40 @@ export default function ResetPassword() {
             <div className={styles.inputGroup}>
               <Lock className={styles.inputIcon} size={20} />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 placeholder="New password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className={styles.input}
                 required
               />
+              <button
+                type="button"
+                className={styles.eyeButton}
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
             <div className={styles.inputGroup}>
               <Lock className={styles.inputIcon} size={20} />
               <input
-                type="password"
+                type={showConfirm ? 'text' : 'password'}
                 placeholder="Confirm password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 className={styles.input}
                 required
               />
+              <button
+                type="button"
+                className={styles.eyeButton}
+                onClick={() => setShowConfirm((v) => !v)}
+                aria-label={showConfirm ? 'Hide confirm password' : 'Show confirm password'}
+              >
+                {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
             <button type="submit" disabled={loading} className={styles.button}>
               {loading ? 'Updating...' : 'Update password'}
