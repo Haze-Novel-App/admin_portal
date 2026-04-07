@@ -68,9 +68,9 @@ export default function Dashboard() {
 
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('created_at, role')
-        .gte('created_at', sevenDaysAgo.toISOString())
-        .order('created_at', { ascending: true });
+        .select('updated_at, role')
+        .gte('updated_at', sevenDaysAgo.toISOString())
+        .order('updated_at', { ascending: true });
 
       const weekReaders = (profiles || []).filter(p => p.role === 'reader').length;
       const weekAuthors = (profiles || []).filter(p => p.role === 'author').length;
@@ -112,7 +112,7 @@ export default function Dashboard() {
 
     // Fill with real data
     profiles.forEach(p => {
-      const date = new Date(p.created_at);
+      const date = new Date(p.updated_at);
       const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
 
       if (days[dayName]) {
@@ -170,7 +170,7 @@ export default function Dashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
 
         {/* Main Line Chart */}
-        <div className="card" style={{ height: 400, display: 'flex', flexDirection: 'column' }}>
+        <div className="card" style={{ minHeight: 400, display: 'flex', flexDirection: 'column' }}>
           <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between' }}>
             <h3 style={{ margin: 0 }}>User Growth (Last 7 Days)</h3>
             <span style={{ fontSize: 12, color: '#888' }}>Live Data</span>
@@ -197,7 +197,7 @@ export default function Dashboard() {
         </div>
 
         {/* Side Bar Chart */}
-        <div className="card" style={{ height: 400, display: 'flex', flexDirection: 'column' }}>
+        <div className="card" style={{ minHeight: 400, display: 'flex', flexDirection: 'column' }}>
           <div style={{ marginBottom: 20 }}>
             <h3 style={{ margin: 0 }}>User Distribution</h3>
           </div>

@@ -16,7 +16,8 @@
     "react-dom": "^19.2.0",
     "react-dropzone": "^14.3.8",
     "react-router-dom": "^7.11.0",
-    "recharts": "^3.6.0"
+    "recharts": "^3.6.0",
+    "supabase": "^2.87.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

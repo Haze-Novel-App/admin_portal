@@ -1,12 +1,12 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
 
-serve(async (req) => {
+serve(async (req: Request) => {
   const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
 
   try {
     // We call the v1beta 'models' endpoint
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`
+      `https://generativelanguage.googleapis.com/v1/models?key=${GEMINI_API_KEY}`
     )
 
     const data = await response.json()
@@ -22,7 +22,7 @@ serve(async (req) => {
       headers: { "Content-Type": "application/json" } 
     })
 
-  } catch (error) {
+  } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 })
   }
 })

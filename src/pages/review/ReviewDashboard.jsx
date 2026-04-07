@@ -141,7 +141,20 @@ export default function ReviewDashboard() {
         body: { chapterId: chapter.id, chapterText: textContent }
       });
 
-      if (fnError) throw new Error(`AI Analysis Failed: ${fnError.message}`);
+      if (fnError) {
+        console.error("Edge Function Error Structure:", fnError);
+        let errorMsg = fnError.message || (typeof fnError === 'string' ? fnError : JSON.stringify(fnError));
+        
+        // Try to parse error response if context returned it
+        if (fnError.context?.json) {
+          errorMsg = fnError.context.json.error || errorMsg;
+          if (fnError.context.json.suggestion) {
+            errorMsg += `. ${fnError.context.json.suggestion}`;
+          }
+        }
+        
+        throw new Error(`AI Analysis Failed: ${errorMsg}`);
+      }
       if (!aiReport) throw new Error("AI Analysis returned no data.");
 
       // Calculate next review number
