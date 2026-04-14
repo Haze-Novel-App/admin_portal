@@ -30,6 +30,7 @@ export default function ReviewDashboard() {
   const [viewingReportChapter, setViewingReportChapter] = useState(null);
   const [currentReportHistory, setCurrentReportHistory] = useState([]);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, currentItem: "" });
 
   // Standard Magic Report for Bulk Approval
   const MAGIC_REPORT = {
@@ -271,10 +272,15 @@ export default function ReviewDashboard() {
     }
 
     setIsBulkProcessing(true);
+    setBulkProgress({ current: 0, total: chaptersToApprove.length, currentItem: "Initializing..." });
+    
     try {
       console.log(`=== Starting Magic Bulk Approval for ${chaptersToApprove.length} chapters ===`);
-
+      
+      let completedCount = 0;
       for (const chapter of chaptersToApprove) {
+        setBulkProgress(prev => ({ ...prev, currentItem: chapter.title || `Chapter ${chapter.chapter_number}` }));
+        
         const existingHistory = reviewHistoryMap[chapter.id] || [];
         const nextReviewNumber = existingHistory.length + 1;
 
@@ -310,6 +316,9 @@ export default function ReviewDashboard() {
           ...prev,
           [chapter.id]: [...(prev[chapter.id] || []), newRow]
         }));
+
+        completedCount++;
+        setBulkProgress(prev => ({ ...prev, current: completedCount }));
       }
 
       // Refresh chapters list locally
@@ -325,6 +334,7 @@ export default function ReviewDashboard() {
       alert("Bulk Magic Approval Failed: " + error.message);
     } finally {
       setIsBulkProcessing(false);
+      setBulkProgress({ current: 0, total: 0, currentItem: "" });
     }
   };
 
@@ -635,6 +645,36 @@ export default function ReviewDashboard() {
             </div>
           )}
         </>
+      )}
+
+      {/* Bulk Progress Overlay */}
+      {isBulkProcessing && (
+        <div className={styles.progressOverlay}>
+          <div className={styles.progressPopup}>
+            <div className={styles.progressHeader}>
+              <div className={styles.progressIcon}>
+                <Zap size={20} className={styles.pulseIcon} />
+              </div>
+              <div className={styles.progressTitle}>
+                <h3>Magic Approving Chapters...</h3>
+                <p>Now processing: <strong>{bulkProgress.currentItem}</strong></p>
+              </div>
+            </div>
+            
+            <div className={styles.progressBody}>
+              <div className={styles.progressStats}>
+                <span>{Math.round((bulkProgress.current / bulkProgress.total) * 100)}% Complete</span>
+                <span>{bulkProgress.current} / {bulkProgress.total}</span>
+              </div>
+              <div className={styles.progressTrack}>
+                <div 
+                  className={styles.progressBar} 
+                  style={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
