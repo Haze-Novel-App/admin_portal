@@ -72,9 +72,9 @@ CHAPTER TEXT:
 ${chapterText.substring(0, 25000)}
     `.trim()
 
-    // Helper to find an available Gemini model
+    // Helper to find an available Gemini model (Self-healing fallback)
     async function getBestModel(key: string) {
-      const defaultModel = "gemini-2.5-flash";
+      const defaultModel = "gemini-1.5-flash";
       try {
         const listRes = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${key}`);
         if (!listRes.ok) return defaultModel;
@@ -89,50 +89,103 @@ ${chapterText.substring(0, 25000)}
       }
     }
 
-    // 5. Call Gemini API - Modernized for 2026 availability
-    let model = "gemini-2.5-flash"
-    let aiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          contents: [{ 
-            parts: [{ text: prompt }] 
-          }],
-          generationConfig: {
-            temperature: 0.2,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 8192,
-          }
-        })
-      }
-    )
+    // Resilience Configuration: Models to try in order and limits
+    const modelFallbackChain = ["gemini-3.1-flash-lite", "gemini-1.5-flash", "gemini-2.0-flash-exp"];
+    const maxRetriesPerModel = 2; // Try each model up to 3 times (1 initial + 2 retries)
+    const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
-    // FALLBACK: If 404, try auto-discovering a valid model
-    if (aiResponse.status === 404) {
-      console.warn(`Model ${model} not found. Attempting auto-discovery...`)
-      model = await getBestModel(GEMINI_API_KEY)
-      console.log(`Discovered available model: ${model}`)
+    let aiResponse: Response | null = null;
+    let lastError: string = "";
+    let finalModel = "";
+
+    // OPTIONAL: Try to auto-discover the best model for this key if the chain is failing
+    // We'll append the discovered model to the chain if needed
+    
+    // 5. RESILIENT CALL LOOP
+    outerLoop:
+    for (const currentModel of modelFallbackChain) {
+      finalModel = currentModel;
       
-      aiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.2, maxOutputTokens: 8192 }
-          })
+      for (let attempt = 0; attempt <= maxRetriesPerModel; attempt++) {
+        if (attempt > 0) {
+          // Exponential backoff with jitter: 2^attempt * 1000 + random
+          const waitTime = (Math.pow(2, attempt) * 1000) + (Math.random() * 1000);
+          console.warn(`Retry attempt ${attempt} for model ${currentModel}. Waiting ${Math.round(waitTime)}ms...`);
+          await delay(waitTime);
         }
-      )
+
+        try {
+          console.log(`Calling Gemini API (Model: ${currentModel}, Attempt: ${attempt + 1})...`);
+          
+          aiResponse = await fetch(
+            `https://generativelanguage.googleapis.com/v1/models/${currentModel}:generateContent?key=${GEMINI_API_KEY}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                  temperature: 0.2,
+                  topK: 40,
+                  topP: 0.95,
+                  maxOutputTokens: 8192,
+                }
+              })
+            }
+          );
+
+          if (aiResponse.ok) {
+            console.log(`Success on model ${currentModel}!`);
+            break outerLoop; // Success! Exit both loops.
+          }
+
+          // Handle specific retryable errors
+          const errorBody = await aiResponse.text();
+          lastError = `Status ${aiResponse.status}: ${errorBody}`;
+          
+          if (aiResponse.status === 404) {
+            console.error(`Model ${currentModel} not found (404). Rotating model...`);
+            break; // Skip to next model immediately
+          } else if (aiResponse.status === 503 || aiResponse.status === 429) {
+            console.warn(`Gemini busy/overloaded (Status ${aiResponse.status}) for ${currentModel}.`);
+            // Continue to next attempt in inner loop
+          } else {
+            // Non-retryable error (e.g. 400 Bad Request)
+            throw new Error(`Critical Gemini Error: ${lastError}`);
+          }
+        } catch (e: any) {
+          if (e.message.includes("Critical")) throw e;
+          console.error(`Request failed for ${currentModel}:`, e.message);
+          lastError = e.message;
+        }
+      }
+      
+      console.warn(`${currentModel} failed after max retries. Trying next model...`);
     }
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text()
-      console.error("Gemini API HTTP Error:", aiResponse.status, errorText)
-      throw new Error(`Gemini API returned ${aiResponse.status} using model ${model}. Details: ${errorText}`)
+    if (!aiResponse || !aiResponse.ok) {
+      // LAST RESORT: Try auto-discovery
+      console.warn("Standard models failed. Attempting auto-discovery...");
+      const discoveredModel = await getBestModel(GEMINI_API_KEY);
+      if (discoveredModel && !modelFallbackChain.includes(discoveredModel)) {
+        console.log(`Auto-discovered model: ${discoveredModel}. Final attempt...`);
+        aiResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1/models/${discoveredModel}:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.2, maxOutputTokens: 8192 }
+            })
+          }
+        );
+      }
+    }
+
+    if (!aiResponse || !aiResponse.ok) {
+      const status = aiResponse?.status || "Unknown";
+      throw new Error(`AI Review failed. Final Status: ${status}. Error Detail: ${lastError}`);
     }
 
     const aiData = await aiResponse.json()

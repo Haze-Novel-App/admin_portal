@@ -145,15 +145,21 @@ export default function ReviewDashboard() {
         console.error("Edge Function Error Structure:", fnError);
         let errorMsg = fnError.message || (typeof fnError === 'string' ? fnError : JSON.stringify(fnError));
         
-        // Try to parse error response if context returned it
+        // Try to parse detailed error response
         if (fnError.context?.json) {
-          errorMsg = fnError.context.json.error || errorMsg;
-          if (fnError.context.json.suggestion) {
-            errorMsg += `. ${fnError.context.json.suggestion}`;
-          }
+          const detail = fnError.context.json;
+          errorMsg = detail.error || errorMsg;
+          if (detail.suggestion) errorMsg += `\n\n💡 Suggestion: ${detail.suggestion}`;
+        }
+
+        // Special handling for common Gemini errors
+        if (errorMsg.includes("429") || errorMsg.toLowerCase().includes("quota")) {
+          errorMsg = "Gemini API Quota Exceeded (429). This usually means too many requests were made too quickly, or your key's free tier limit was reached. Please wait a minute or check your Google AI Studio billing.";
+        } else if (errorMsg.includes("503") || errorMsg.toLowerCase().includes("overloaded")) {
+          errorMsg = "Gemini is currently overloaded (503). We've already tried several retries, but the service is under high demand. Please try again in a few minutes.";
         }
         
-        throw new Error(`AI Analysis Failed: ${errorMsg}`);
+        throw new Error(errorMsg);
       }
       if (!aiReport) throw new Error("AI Analysis returned no data.");
 
