@@ -316,6 +316,18 @@
   transform: translateY(-1px);
 }
 
+.btnMagic {
+  background: linear-gradient(135deg, #7C3AED 0%, #C026D3 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+.btnMagic:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+}
+
 .btnOutline {
   background: white;
   border: 1px solid #CBD5E0;

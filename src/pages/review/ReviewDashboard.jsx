@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import {
   Book, User, Bot, Check, X, FileText,
-  Loader, RefreshCw, AlertCircle, Eye, ArrowLeft, History
+  Loader, RefreshCw, AlertCircle, Eye, ArrowLeft, History, Zap
 } from 'lucide-react';
 import ChapterReportView from './ChapterReportView';
 import styles from '../../assets/styles/ReviewDashboard.module.css';
@@ -23,9 +23,32 @@ export default function ReviewDashboard() {
   // Review history map: chapter_id -> array of history rows
   const [reviewHistoryMap, setReviewHistoryMap] = useState({});
 
+  // Rate limiting cooldown state (in seconds)
+  const [cooldownTime, setCooldownTime] = useState(0);
+
   // Page view state
   const [viewingReportChapter, setViewingReportChapter] = useState(null);
   const [currentReportHistory, setCurrentReportHistory] = useState([]);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+
+  // Standard Magic Report for Bulk Approval
+  const MAGIC_REPORT = {
+    genre: { primary: "General Fiction", sub_genres: ["Drama"], target_audience: "General" },
+    overview: {
+      summary: "Bulk approved by administrator. Initial review passed automatically.",
+      themes: ["Standard Narrative"],
+      emotional_tone: "Neutral"
+    },
+    classification: { type: "Standard Chapter", pacing: "Moderate" },
+    sensitivity: {
+      vulgarity: { detected: false, examples: "", context: "" },
+      sexual_content: { detected: false, examples: "", context: "" },
+      violence: { detected: false, examples: "", context: "" },
+      substance_use: { detected: false, examples: "", context: "" },
+      hate_speech: { detected: false, examples: "", context: "" }
+    },
+    style: { tone: "Consistent", writing_style: "Professional", patterns: "Standard" }
+  };
 
   useEffect(() => {
     fetchReviewBooks();
@@ -38,6 +61,16 @@ export default function ReviewDashboard() {
       window.history.replaceState({}, document.title);
     }
   }, [location.state, loading]);
+
+  // Cooldown countdown effect
+  useEffect(() => {
+    if (cooldownTime > 0) {
+      const timer = setInterval(() => {
+        setCooldownTime(prev => prev - 1);
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [cooldownTime]);
 
   async function fetchReviewBooks() {
     try {
@@ -144,7 +177,7 @@ export default function ReviewDashboard() {
       if (fnError) {
         console.error("Edge Function Error Structure:", fnError);
         let errorMsg = fnError.message || (typeof fnError === 'string' ? fnError : JSON.stringify(fnError));
-        
+
         // Try to parse detailed error response
         if (fnError.context?.json) {
           const detail = fnError.context.json;
@@ -158,12 +191,25 @@ export default function ReviewDashboard() {
         } else if (errorMsg.includes("503") || errorMsg.toLowerCase().includes("overloaded")) {
           errorMsg = "Gemini is currently overloaded (503). We've already tried several retries, but the service is under high demand. Please try again in a few minutes.";
         }
-        
+
         throw new Error(errorMsg);
       }
-      if (!aiReport) throw new Error("AI Analysis returned no data.");
+      if (!aiReport) throw new Error("AI Analysis returned no data from Edge Function.");
 
-      // Calculate next review number
+      // Handle custom error objects returned with 200 OK status
+      if (aiReport.error) {
+        let errorMsg = aiReport.error;
+        if (aiReport.suggestion) errorMsg += `\n\n💡 Suggestion: ${aiReport.suggestion}`;
+
+        // Final normalization for common Gemini errors
+        if (errorMsg.includes("429") || errorMsg.toLowerCase().includes("quota")) {
+          errorMsg = "Gemini API Quota Exceeded (429). This usually means too many requests were made too quickly, or your key's free tier limit was reached. Please wait a minute or check your Google AI Studio billing.";
+        } else if (errorMsg.includes("503") || errorMsg.toLowerCase().includes("overloaded")) {
+          errorMsg = "Gemini is currently overloaded (503). We've already tried several retries, but the service is under high demand. Please try again in a few minutes.";
+        }
+
+        throw new Error(errorMsg);
+      }
       const existingHistory = reviewHistoryMap[chapter.id] || [];
       const nextReviewNumber = existingHistory.length + 1;
 
@@ -200,9 +246,85 @@ export default function ReviewDashboard() {
 
     } catch (error) {
       console.error("AI Review Failed:", error);
-      alert("AI Review Failed: " + error.message);
+
+      // If error is a 503 or 429, trigger a 30-second cooling down period
+      if (error.message.includes("503") || error.message.includes("429")) {
+        setCooldownTime(30);
+        alert(`Gemini is currently overloaded or rate-limited. To protect your quota, we've enabled a 30s cooling-down period.\n\nError: ${error.message}`);
+      } else {
+        alert("AI Review Failed: " + error.message);
+      }
     } finally {
       setAnalyzingIds(prev => { const next = new Set(prev); next.delete(chapter.id); return next; });
+    }
+  };
+
+  // --- MAGIC BULK APPROVE ---
+  const handleBulkMagicApprove = async (chaptersToApprove) => {
+    if (!chaptersToApprove || chaptersToApprove.length === 0) {
+      alert("No chapters available for bulk approval.");
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to Magic Approve ${chaptersToApprove.length} chapters instantly? This will skip AI analysis and mark them as Approved.`)) {
+      return;
+    }
+
+    setIsBulkProcessing(true);
+    try {
+      console.log(`=== Starting Magic Bulk Approval for ${chaptersToApprove.length} chapters ===`);
+
+      for (const chapter of chaptersToApprove) {
+        const existingHistory = reviewHistoryMap[chapter.id] || [];
+        const nextReviewNumber = existingHistory.length + 1;
+
+        // 1. Insert Magic Report
+        const { data: newRow, error: dbError } = await supabase
+          .from('chapter_review_history')
+          .insert({
+            chapter_id: chapter.id,
+            review_number: nextReviewNumber,
+            genre_analysis: MAGIC_REPORT.genre,
+            content_sensitivity: MAGIC_REPORT.sensitivity,
+            writing_style: MAGIC_REPORT.style,
+            summary: MAGIC_REPORT.overview.summary,
+            chapter_type: MAGIC_REPORT.classification.type,
+            target_audience: MAGIC_REPORT.genre.target_audience,
+            decision: 'approved' // Automatically set decision to approved
+          })
+          .select()
+          .single();
+
+        if (dbError) throw dbError;
+
+        // 2. Update Chapter Status
+        const { error: updateError } = await supabase
+          .from('chapters')
+          .update({ status: 'approved' })
+          .eq('id', chapter.id);
+
+        if (updateError) throw updateError;
+
+        // 3. Update Local State
+        setReviewHistoryMap(prev => ({
+          ...prev,
+          [chapter.id]: [...(prev[chapter.id] || []), newRow]
+        }));
+      }
+
+      // Refresh chapters list locally
+      setChapters(prev => prev.map(c => {
+        const isTarget = chaptersToApprove.find(tc => tc.id === c.id);
+        return isTarget ? { ...c, status: 'approved' } : c;
+      }));
+
+      alert(`Success! ${chaptersToApprove.length} chapters have been Magic Approved.`);
+
+    } catch (error) {
+      console.error("Bulk Magic Approval Failed:", error);
+      alert("Bulk Magic Approval Failed: " + error.message);
+    } finally {
+      setIsBulkProcessing(false);
     }
   };
 
@@ -324,9 +446,23 @@ export default function ReviewDashboard() {
           ) : (
             <div className={styles.detailPanel}>
               <div className={styles.detailHeader}>
-                <h2 style={{ margin: 0, fontSize: 24, color: '#1A202C' }}>{selectedBook.title}</h2>
-                <div style={{ marginTop: 8, display: 'flex', gap: 16, fontSize: 13, color: '#718096' }}>
-                  <span><User size={14} style={{ display: 'inline', marginRight: 4 }} /> {selectedBook.author_name}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: 24, color: '#1A202C' }}>{selectedBook.title}</h2>
+                    <div style={{ marginTop: 8, display: 'flex', gap: 16, fontSize: 13, color: '#718096' }}>
+                      <span><User size={14} style={{ display: 'inline', marginRight: 4 }} /> {selectedBook.author_name}</span>
+                    </div>
+                  </div>
+
+                  {/* Magic Bulk Approve Button */}
+                  <button
+                    className={`${styles.btn} ${styles.btnMagic}`}
+                    onClick={() => handleBulkMagicApprove(chapters.filter(c => c.status === 'review'))}
+                    disabled={isBulkProcessing || chapters.filter(c => c.status === 'review').length === 0}
+                  >
+                    {isBulkProcessing ? <Loader size={16} className="animate-spin" /> : <Zap size={16} />}
+                    {isBulkProcessing ? ' Processing...' : ' Magic Approve All Chapters'}
+                  </button>
                 </div>
               </div>
 
@@ -379,10 +515,20 @@ export default function ReviewDashboard() {
                             <button
                               className={`${styles.btn} ${styles.btnAnalyze}`}
                               onClick={() => handleAnalyze(chapter)}
-                              disabled={isAnalyzing}
+                              disabled={isAnalyzing || cooldownTime > 0}
                             >
-                              {isAnalyzing ? <Loader size={16} className="animate-spin" /> : <Bot size={16} />}
-                              {isAnalyzing ? ' Analyzing...' : ' AI Review'}
+                              {isAnalyzing ? (
+                                <Loader size={16} className="animate-spin" />
+                              ) : cooldownTime > 0 ? (
+                                <RefreshCw size={16} className="animate-spin" />
+                              ) : (
+                                <Bot size={16} />
+                              )}
+                              {isAnalyzing
+                                ? ' Analyzing...'
+                                : cooldownTime > 0
+                                  ? ` Cool-down (${cooldownTime}s)`
+                                  : ' AI Review'}
                             </button>
                           )}
 
@@ -419,9 +565,32 @@ export default function ReviewDashboard() {
       ) : (
         <>
           <div className={styles.pageHeader}>
-            <h2 className={styles.pageTitle}>
-              All Books <span className={styles.bookCount}>({books.length})</span>
-            </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <h2 className={styles.pageTitle}>
+                All Books <span className={styles.bookCount}>({books.length})</span>
+              </h2>
+              <button
+                className={`${styles.btn} ${styles.btnMagic}`}
+                onClick={async () => {
+                  if (!confirm("Caution: This will Magic Approve ALL chapters for ALL books shown here. Proceed?")) return;
+
+                  const allReviewChapters = [];
+                  for (const book of books) {
+                    const { data } = await supabase.from('chapters').select('*').eq('book_id', book.id).eq('status', 'review');
+                    if (data) allReviewChapters.push(...data);
+                  }
+
+                  if (allReviewChapters.length === 0) {
+                    alert("No chapters currently in review.");
+                    return;
+                  }
+                  handleBulkMagicApprove(allReviewChapters);
+                }}
+                disabled={isBulkProcessing || books.length === 0}
+              >
+                <Zap size={16} />Approve All Books
+              </button>
+            </div>
           </div>
 
           {loading ? (
